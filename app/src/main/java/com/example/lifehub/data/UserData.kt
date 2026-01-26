@@ -1,0 +1,110 @@
+package com.example.lifehub.data
+
+import com.google.gson.annotations.SerializedName
+
+/** 用户数据模型 */
+data class User(
+        @SerializedName("id") val id: Int,
+        @SerializedName("nickname") val nickname: String,
+        @SerializedName("healthGoal")
+        val healthGoal: String, // reduce_fat/gain_muscle/control_sugar/balanced
+        @SerializedName("allergens") val allergens: List<String>,
+        @SerializedName("travelPreference") val travelPreference: String?,
+        @SerializedName("dailyBudget") val dailyBudget: Int?
+)
+
+/** 用户偏好设置 */
+data class UserPreferences(
+        @SerializedName("healthGoal") val healthGoal: String?,
+        @SerializedName("allergens") val allergens: List<String>?
+)
+
+/** 更新用户偏好请求 */
+data class UpdatePreferencesRequest(
+        @SerializedName("userId") val userId: Int,
+        @SerializedName("healthGoal") val healthGoal: String?,
+        @SerializedName("allergens") val allergens: List<String>?,
+        @SerializedName("travelPreference") val travelPreference: String?,
+        @SerializedName("dailyBudget") val dailyBudget: Int?
+)
+
+/** 饮食记录数据模型 */
+data class DietRecord(
+        @SerializedName("id") val id: Int,
+        @SerializedName("userId") val userId: Int,
+        @SerializedName("foodName") val foodName: String,
+        @SerializedName("calories") val calories: Double,
+        @SerializedName("protein") val protein: Double,
+        @SerializedName("fat") val fat: Double,
+        @SerializedName("carbs") val carbs: Double,
+        @SerializedName("mealType") val mealType: String, // breakfast/lunch/dinner/snack
+        @SerializedName("recordDate") val recordDate: String,
+        @SerializedName("createdAt") val createdAt: String
+)
+
+/** 添加饮食记录请求 */
+data class AddDietRecordRequest(
+        @SerializedName("userId") val userId: Int,
+        @SerializedName("foodName") val foodName: String,
+        @SerializedName("calories") val calories: Double,
+        @SerializedName("protein") val protein: Double,
+        @SerializedName("fat") val fat: Double,
+        @SerializedName("carbs") val carbs: Double,
+        @SerializedName("mealType") val mealType: String,
+        @SerializedName("recordDate") val recordDate: String
+)
+
+/** 饮食历史响应 */
+data class DietHistoryResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: DietHistoryData?
+)
+
+data class DietHistoryData(
+        @SerializedName("totalCalories") val totalCalories: Double,
+        @SerializedName("targetCalories") val targetCalories: Double,
+        @SerializedName("records") val records: List<DietRecord>
+)
+
+/** 通用API响应 */
+data class ApiResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: Any?
+)
+
+/** 登录请求 */
+data class LoginRequest(
+        @SerializedName("username") val username: String,
+        @SerializedName("password") val password: String
+)
+
+/** 登录响应 */
+data class LoginResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val loginData: LoginData?
+)
+
+data class LoginData(
+        @SerializedName("userId") val userId: Int,
+        @SerializedName("username") val username: String,
+        @SerializedName("nickname") val nickname: String?
+)
+
+/** 获取用户偏好响应 */
+data class UserPreferencesResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: UserPreferencesData?
+)
+
+data class UserPreferencesData(
+        @SerializedName("userId") val userId: Int,
+        @SerializedName("nickname") val nickname: String?,
+        @SerializedName("healthGoal") val healthGoal: String?,
+        @SerializedName("allergens") val allergens: List<String>?,
+        @SerializedName("travelPreference") val travelPreference: String?,
+        @SerializedName("dailyBudget") val dailyBudget: Int?
+)
