@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.theme.*
+import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.TripViewModel
 import com.example.lifehub.viewmodel.UserViewModel
 
@@ -36,7 +37,8 @@ import com.example.lifehub.viewmodel.UserViewModel
 fun ProfilePage(
         navController: NavController,
         viewModel: UserViewModel = viewModel(),
-        tripViewModel: TripViewModel = viewModel()
+        tripViewModel: TripViewModel = viewModel(),
+        foodViewModel: FoodViewModel = viewModel()
 ) {
     val context = LocalContext.current
     UserSession.init(context)
@@ -52,11 +54,15 @@ fun ProfilePage(
     // 观察行程列表状态，用于计算行程数量
     val tripListState by tripViewModel.tripListState.collectAsState()
 
-    // 如果已登录，获取用户偏好和行程列表
+    // 观察饮食记录状态，用于计算用餐记录数量
+    val dietRecordsState by foodViewModel.dietRecordsState.collectAsState()
+
+    // 如果已登录，获取用户偏好、行程列表和饮食记录
     LaunchedEffect(userId.value) {
         userId.value?.let {
             viewModel.getUserPreferences(it)
             tripViewModel.getTripList(it)
+            foodViewModel.getDietRecords(it)
         }
     }
 
@@ -93,7 +99,22 @@ fun ProfilePage(
                                     state.trips.size
                             else -> 0
                         }
-                StatsCards(navController = navController, tripCount = tripCount)
+
+                // 计算用餐记录数量
+                val dietRecordCount =
+                        when (val state = dietRecordsState) {
+                            is com.example.lifehub.viewmodel.DietRecordsState.Success -> {
+                                // 统计所有日期的记录总数
+                                state.records.values.sumOf { it.size }
+                            }
+                            else -> 0
+                        }
+
+                StatsCards(
+                        navController = navController,
+                        tripCount = tripCount,
+                        dietRecordCount = dietRecordCount
+                )
             }
 
             item {
@@ -299,12 +320,17 @@ private fun ProfileHeader(isLoggedIn: Boolean, nickname: String, onClickAvatar: 
 }
 
 @Composable
-private fun StatsCards(navController: NavController, tripCount: Int) {
+private fun StatsCards(navController: NavController, tripCount: Int, dietRecordCount: Int) {
     Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        StatCard(modifier = Modifier.weight(1f), value = "156", label = "用餐记录")
+        StatCard(
+                modifier = Modifier.weight(1f),
+                value = dietRecordCount.toString(),
+                label = "用餐记录",
+                onClick = { navController.navigate(Screen.AllDietRecords.route) }
+        )
         StatCard(
                 modifier = Modifier.weight(1f),
                 value = tripCount.toString(),

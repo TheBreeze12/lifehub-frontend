@@ -24,10 +24,6 @@ class UserViewModel : ViewModel() {
     private val _dietHistoryState = MutableStateFlow<DietHistoryState>(DietHistoryState.Idle)
     val dietHistoryState: StateFlow<DietHistoryState> = _dietHistoryState.asStateFlow()
 
-    // 添加饮食记录状态
-    private val _addDietRecordState = MutableStateFlow<AddDietRecordState>(AddDietRecordState.Idle)
-    val addDietRecordState: StateFlow<AddDietRecordState> = _addDietRecordState.asStateFlow()
-
     // 用户偏好状态
     private val _userPreferencesState =
             MutableStateFlow<UserPreferencesState>(UserPreferencesState.Idle)
@@ -72,47 +68,6 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    /** 添加饮食记录 */
-    fun addDietRecord(
-            userId: Int,
-            foodName: String,
-            calories: Double,
-            protein: Double,
-            fat: Double,
-            carbs: Double,
-            mealType: String,
-            recordDate: String
-    ) {
-        viewModelScope.launch {
-            _addDietRecordState.value = AddDietRecordState.Loading
-
-            try {
-                val response =
-                        apiService.addDietRecord(
-                                AddDietRecordRequest(
-                                        userId = userId,
-                                        foodName = foodName,
-                                        calories = calories,
-                                        protein = protein,
-                                        fat = fat,
-                                        carbs = carbs,
-                                        mealType = mealType,
-                                        recordDate = recordDate
-                                )
-                        )
-
-                if (response.code == 200) {
-                    _addDietRecordState.value = AddDietRecordState.Success
-                } else {
-                    _addDietRecordState.value =
-                            AddDietRecordState.Error(response.message ?: "添加记录失败")
-                }
-            } catch (e: Exception) {
-                _addDietRecordState.value = AddDietRecordState.Error(e.message ?: "网络请求失败")
-            }
-        }
-    }
-
     /** 获取饮食历史记录 */
     fun getDietHistory(userId: Int, date: String? = null) {
         viewModelScope.launch {
@@ -130,11 +85,6 @@ class UserViewModel : ViewModel() {
                 _dietHistoryState.value = DietHistoryState.Error(e.message ?: "网络请求失败")
             }
         }
-    }
-
-    /** 重置添加饮食记录状态 */
-    fun resetAddDietRecordState() {
-        _addDietRecordState.value = AddDietRecordState.Idle
     }
 
     /** 获取用户偏好 */
@@ -237,14 +187,6 @@ sealed class DietHistoryState {
     object Loading : DietHistoryState()
     data class Success(val data: DietHistoryData) : DietHistoryState()
     data class Error(val message: String) : DietHistoryState()
-}
-
-/** 添加饮食记录状态 */
-sealed class AddDietRecordState {
-    object Idle : AddDietRecordState()
-    object Loading : AddDietRecordState()
-    object Success : AddDietRecordState()
-    data class Error(val message: String) : AddDietRecordState()
 }
 
 /** 用户偏好状态 */

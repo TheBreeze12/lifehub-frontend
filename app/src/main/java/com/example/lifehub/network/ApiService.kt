@@ -12,11 +12,25 @@ interface ApiService {
         /**
          * 上传菜单图片识别 POST /api/food/recognize
          * @param image 菜单图片文件
+         * @param userId 用户ID（可选）
          * @return 识别出的菜品列表
          */
         @Multipart
         @POST("/api/food/recognize")
-        suspend fun recognizeMenu(@Part image: MultipartBody.Part): RecognizeMenuResponse
+        suspend fun recognizeMenu(
+                @Part image: MultipartBody.Part,
+                @Part("userId") userId: okhttp3.RequestBody?
+        ): RecognizeMenuResponse
+
+        /**
+         * 获取最新的菜单识别结果 GET /api/food/latest-recognition
+         * @param userId 用户ID（可选）
+         * @return 最新的识别结果
+         */
+        @GET("/api/food/latest-recognition")
+        suspend fun getLatestRecognition(
+                @Query("userId") userId: Int? = null
+        ): RecognizeMenuResponse
 
         /**
          * 分析单个菜品营养成分（文本查询） POST /api/food/analyze
@@ -33,6 +47,22 @@ interface ApiService {
          */
         @POST("/api/food/record")
         suspend fun addDietRecord(@Body request: AddDietRecordRequest): ApiResponse
+
+        /**
+         * 获取用户所有饮食记录（按日期划分） GET /api/food/records
+         * @param userId 用户ID
+         * @return 按日期分组的饮食记录
+         */
+        @GET("/api/food/records")
+        suspend fun getDietRecords(@Query("userId") userId: Int): DietRecordsByDateResponse
+
+        /**
+         * 获取用户今天的饮食记录 GET /api/food/records/today
+         * @param userId 用户ID
+         * @return 今天的饮食记录
+         */
+        @GET("/api/food/records/today")
+        suspend fun getTodayDietRecords(@Query("userId") userId: Int): DietRecordsByDateResponse
 
         // ==================== 行程规划服务 ====================
 

@@ -67,6 +67,13 @@ data class DietHistoryData(
         @SerializedName("records") val records: List<DietRecord>
 )
 
+/** 按日期分组的饮食记录响应 */
+data class DietRecordsByDateResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: Map<String, List<DietRecord>>?
+)
+
 /** 通用API响应 */
 data class ApiResponse(
         @SerializedName("code") val code: Int,

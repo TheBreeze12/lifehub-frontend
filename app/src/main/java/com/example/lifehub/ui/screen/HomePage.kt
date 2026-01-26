@@ -27,11 +27,16 @@ import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.theme.*
+import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.TripViewModel
 
 /** 首页 - 应用主入口 包含快速操作、今日饮食摘要、近期行程卡片 */
 @Composable
-fun HomePage(navController: NavController, tripViewModel: TripViewModel = viewModel()) {
+fun HomePage(
+        navController: NavController,
+        tripViewModel: TripViewModel = viewModel(),
+        foodViewModel: FoodViewModel = viewModel()
+) {
         // 检查登录状态
         val isLoggedIn =
                 try {
@@ -48,11 +53,12 @@ fun HomePage(navController: NavController, tripViewModel: TripViewModel = viewMo
                         null
                 }
 
-        // 仅在已登录时加载首页行程
+        // 仅在已登录时加载首页行程和今日饮食记录
         LaunchedEffect(isLoggedIn, userId) {
                 if (isLoggedIn && userId != null) {
                         try {
                                 tripViewModel.getHomeTrips(userId, limit = 3)
+                                foodViewModel.getTodayDietRecords(userId)
                         } catch (e: Exception) {
                                 // 静默处理错误，避免崩溃
                         }
@@ -60,6 +66,50 @@ fun HomePage(navController: NavController, tripViewModel: TripViewModel = viewMo
         }
 
         val homeTripsState by tripViewModel.homeTripsState.collectAsState()
+        val todayDietRecordsState by foodViewModel.todayDietRecordsState.collectAsState()
+
+        // 计算今日营养统计
+        val nutritionStats =
+                remember(todayDietRecordsState) {
+                        when (val state = todayDietRecordsState) {
+                                is com.example.lifehub.viewmodel.DietRecordsState.Success -> {
+                                        // 获取今日的记录（通常只有一条日期记录）
+                                        val todayRecords = state.records.values.flatten()
+
+                                        // 计算总和
+                                        val totalProtein =
+                                                todayRecords
+                                                        .fold(0.0) { acc, record ->
+                                                                acc + record.protein
+                                                        }
+                                                        .toFloat()
+                                        val totalFat =
+                                                todayRecords
+                                                        .fold(0.0) { acc, record ->
+                                                                acc + record.fat
+                                                        }
+                                                        .toFloat()
+                                        val totalCarbs =
+                                                todayRecords
+                                                        .fold(0.0) { acc, record ->
+                                                                acc + record.carbs
+                                                        }
+                                                        .toFloat()
+
+                                        // 设置目标值（可以根据用户偏好调整，这里使用默认值）
+                                        val targetProtein = 80f // 80g蛋白质
+                                        val targetFat = 60f // 60g脂肪
+                                        val targetCarbs = 200f // 200g碳水化合物
+
+                                        Triple(
+                                                totalProtein / targetProtein.coerceAtLeast(1f),
+                                                totalFat / targetFat.coerceAtLeast(1f),
+                                                totalCarbs / targetCarbs.coerceAtLeast(1f)
+                                        )
+                                }
+                                else -> Triple(0f, 0f, 0f)
+                        }
+                }
         val scrollState = rememberScrollState()
 
         Column(
@@ -151,18 +201,39 @@ fun HomePage(navController: NavController, tripViewModel: TripViewModel = viewMo
                                                 text = "查看详情 →",
                                                 fontSize = 12.sp,
                                                 color = ForestGreen,
-                                                fontWeight = FontWeight.Medium
+                                                fontWeight = FontWeight.Medium,
+                                                modifier =
+                                                        Modifier.clickable {
+                                                                navController.navigate(
+                                                                        com.example.lifehub
+                                                                                .navigation.Screen
+                                                                                .TodayDietRecords
+                                                                                .route
+                                                                )
+                                                        }
                                         )
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // 简化的营养进度条
-                                NutritionProgressBar("蛋白质", 0.7f, Color(0xFF10B981))
+                                // 从今日饮食记录计算的营养进度条
+                                NutritionProgressBar(
+                                        "蛋白质",
+                                        nutritionStats.first.coerceIn(0f, 1f),
+                                        Color(0xFF10B981)
+                                )
                                 Spacer(modifier = Modifier.height(12.dp))
-                                NutritionProgressBar("脂肪", 0.45f, Color(0xFFF59E0B))
+                                NutritionProgressBar(
+                                        "脂肪",
+                                        nutritionStats.second.coerceIn(0f, 1f),
+                                        Color(0xFFF59E0B)
+                                )
                                 Spacer(modifier = Modifier.height(12.dp))
-                                NutritionProgressBar("碳水", 0.6f, Color(0xFF3B82F6))
+                                NutritionProgressBar(
+                                        "碳水",
+                                        nutritionStats.third.coerceIn(0f, 1f),
+                                        Color(0xFF3B82F6)
+                                )
                         }
                 }
 

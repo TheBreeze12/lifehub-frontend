@@ -106,6 +106,14 @@ fun MainNavigation() {
 
             composable(Screen.Profile.route) { ProfilePage(navController = navController) }
 
+            composable(Screen.TodayDietRecords.route) {
+                TodayDietRecordsPage(navController = navController)
+            }
+
+            composable(Screen.AllDietRecords.route) {
+                AllDietRecordsPage(navController = navController)
+            }
+
             composable(Screen.Login.route) {
                 LoginPage(
                         navController = navController,

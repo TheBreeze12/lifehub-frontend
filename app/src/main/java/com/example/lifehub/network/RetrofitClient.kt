@@ -13,16 +13,17 @@ object RetrofitClient {
     // 10.0.2.2 是Android模拟器访问本地主机的特殊IP地址
     // 如果使用真机测试，需要改为电脑的局域网IP地址，如：http://192.168.1.100:8000
     private const val BASE_URL = "http://192.168.1.19:8000"
+//    private const val BASE_URL = "http://10.49.52.252:8000"
 
     /** 配置OkHttp客户端 */
-    private val okHttpClient: OkHttpClient by lazy {
+    private val okHttpClient: OkHttpClient by lazy  {
         val loggingInterceptor =
                 HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
 
         OkHttpClient.Builder()
                 .addInterceptor(loggingInterceptor)
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(90, TimeUnit.SECONDS) // 增加读取超时到90秒，因为需要分析多个菜品
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build()
     }

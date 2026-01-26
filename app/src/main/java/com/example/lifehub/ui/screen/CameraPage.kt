@@ -30,9 +30,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.lifehub.data.DishItem
+import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
+import com.example.lifehub.viewmodel.FoodViewModel
+import com.example.lifehub.viewmodel.MenuRecognitionState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -47,23 +52,38 @@ private val CoralOrange = Color(0xFFFF7F50)
 fun CameraPage(navController: NavController) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
+        val foodViewModel: FoodViewModel = viewModel()
 
         // 相机权限
         val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
         // 状态管理
-        var isRecognizing by remember { mutableStateOf(false) }
-        var recognizedDishes by remember { mutableStateOf<List<DishItem>>(emptyList()) }
         var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
         var showPreview by remember { mutableStateOf(false) }
+
+        // 识别状态
+        val recognitionState by foodViewModel.recognitionState.collectAsState()
 
         // 相机控制器
         val cameraController = remember { CameraController(context) }
 
-        // 请求权限
+        // 获取用户ID
+        val userId =
+                try {
+                        if (UserSession.isLoggedIn()) UserSession.getUserId() else null
+                } catch (e: Exception) {
+                        null
+                }
+
+        // 请求权限并加载最新识别结果（仅在有用户时）
         LaunchedEffect(Unit) {
                 if (!cameraPermissionState.status.isGranted) {
                         cameraPermissionState.launchPermissionRequest()
+                } else {
+                        // 权限已授予，只有在有用户ID时才加载最新的识别结果
+                        if (userId != null) {
+                                foodViewModel.getLatestRecognition(userId)
+                        }
                 }
         }
 
@@ -81,21 +101,16 @@ fun CameraPage(navController: NavController) {
                 ImagePreviewScreen(
                         imageUri = capturedImageUri!!,
                         onConfirm = {
-                                // TODO: 调用API识别菜单
-                                isRecognizing = true
-                                // 模拟识别结果
-                                recognizedDishes =
-                                        listOf(
-                                                DishItem("小炒黄牛肉", "🥩", 320, 200, true, "推荐"),
-                                                DishItem("韭菜炒鸡蛋", "🍳", 180, 150, true, "推荐"),
-                                                DishItem("酸辣白菜", "🥬", 45, 200, true, "推荐"),
-                                                DishItem("醋溜豆芽", "🌱", 35, 200, true, "推荐")
-                                        )
-                                showPreview = false
+                                // 调用API识别菜单（传递userId以保存结果）
+                                capturedImageUri?.let { uri ->
+                                        foodViewModel.recognizeMenu(uri, context, userId)
+                                        showPreview = false
+                                }
                         },
                         onRetake = {
                                 showPreview = false
                                 capturedImageUri = null
+                                foodViewModel.resetRecognitionState()
                         }
                 )
                 return
@@ -202,43 +217,237 @@ fun CameraPage(navController: NavController) {
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF1F2937)
                                         )
-                                        Text(
-                                                text = "共识别${recognizedDishes.size}道菜品",
-                                                fontSize = 12.sp,
-                                                color = Color(0xFF9CA3AF)
-                                        )
+                                        if (recognitionState is MenuRecognitionState.Success &&
+                                                        userId != null
+                                        ) {
+                                                Text(
+                                                        text =
+                                                                "共识别${(recognitionState as MenuRecognitionState.Success).dishes.size}道菜品",
+                                                        fontSize = 12.sp,
+                                                        color = Color(0xFF9CA3AF)
+                                                )
+                                        }
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                if (isRecognizing && recognizedDishes.isNotEmpty()) {
-                                        LazyColumn(
-                                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                                items(recognizedDishes) { dish ->
-                                                        DishItemCard(
-                                                                dish = dish,
-                                                                onClick = {
-                                                                        navController.navigate(
-                                                                                Screen.NutritionDetail
-                                                                                        .createRoute(
-                                                                                                dish.name
-                                                                                        )
-                                                                        )
-                                                                }
-                                                        )
+                                // 根据识别状态显示不同内容
+                                // 如果没有用户，不显示任何识别结果
+                                when (val state = recognitionState) {
+                                        is MenuRecognitionState.Loading -> {
+                                                Box(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentAlignment = Alignment.Center
+                                                ) {
+                                                        Column(
+                                                                horizontalAlignment =
+                                                                        Alignment
+                                                                                .CenterHorizontally,
+                                                                verticalArrangement =
+                                                                        Arrangement.Center
+                                                        ) {
+                                                                CircularProgressIndicator(
+                                                                        color = CoralOrange,
+                                                                        modifier =
+                                                                                Modifier.size(48.dp)
+                                                                )
+                                                                Spacer(
+                                                                        modifier =
+                                                                                Modifier.height(
+                                                                                        16.dp
+                                                                                )
+                                                                )
+                                                                Text(
+                                                                        text = "正在识别菜单...",
+                                                                        color = Color(0xFF9CA3AF),
+                                                                        fontSize = 14.sp
+                                                                )
+                                                                Spacer(
+                                                                        modifier =
+                                                                                Modifier.height(
+                                                                                        8.dp
+                                                                                )
+                                                                )
+                                                                Text(
+                                                                        text =
+                                                                                "AI正在分析菜品，可能需要较长时间，请耐心等待",
+                                                                        color = Color(0xFF9CA3AF),
+                                                                        fontSize = 12.sp
+                                                                )
+                                                        }
                                                 }
                                         }
-                                } else {
-                                        Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                        ) {
-                                                Text(
-                                                        text = "点击拍照按钮开始识别",
-                                                        color = Color(0xFF9CA3AF),
-                                                        fontSize = 14.sp
-                                                )
+                                        is MenuRecognitionState.Success -> {
+                                                // 只有在有用户时才显示识别结果
+                                                if (userId != null && state.dishes.isNotEmpty()) {
+                                                        LazyColumn(
+                                                                verticalArrangement =
+                                                                        Arrangement.spacedBy(12.dp)
+                                                        ) {
+                                                                items(state.dishes) { dish ->
+                                                                        DishItemCard(
+                                                                                dish = dish,
+                                                                                onClick = {
+                                                                                        navController
+                                                                                                .navigate(
+                                                                                                        Screen.NutritionDetail
+                                                                                                                .createRoute(
+                                                                                                                        dish.name
+                                                                                                                )
+                                                                                                )
+                                                                                }
+                                                                        )
+                                                                }
+                                                        }
+                                                } else if (userId == null) {
+                                                        // 没有用户时显示提示
+                                                        Box(
+                                                                modifier = Modifier.fillMaxSize(),
+                                                                contentAlignment = Alignment.Center
+                                                        ) {
+                                                                Column(
+                                                                        horizontalAlignment =
+                                                                                Alignment
+                                                                                        .CenterHorizontally
+                                                                ) {
+                                                                        Text(
+                                                                                text =
+                                                                                        "请先登录以保存识别结果",
+                                                                                color =
+                                                                                        Color(
+                                                                                                0xFF9CA3AF
+                                                                                        ),
+                                                                                fontSize = 14.sp
+                                                                        )
+                                                                        Spacer(
+                                                                                modifier =
+                                                                                        Modifier.height(
+                                                                                                8.dp
+                                                                                        )
+                                                                        )
+                                                                        Text(
+                                                                                text = "点击拍照按钮开始识别",
+                                                                                color =
+                                                                                        Color(
+                                                                                                0xFF9CA3AF
+                                                                                        ),
+                                                                                fontSize = 12.sp
+                                                                        )
+                                                                }
+                                                        }
+                                                } else {
+                                                        Box(
+                                                                modifier = Modifier.fillMaxSize(),
+                                                                contentAlignment = Alignment.Center
+                                                        ) {
+                                                                Text(
+                                                                        text = "未识别到菜品，请重试",
+                                                                        color = Color(0xFF9CA3AF),
+                                                                        fontSize = 14.sp
+                                                                )
+                                                        }
+                                                }
+                                        }
+                                        is MenuRecognitionState.Error -> {
+                                                Box(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentAlignment = Alignment.Center
+                                                ) {
+                                                        Column(
+                                                                horizontalAlignment =
+                                                                        Alignment
+                                                                                .CenterHorizontally,
+                                                                verticalArrangement =
+                                                                        Arrangement.Center
+                                                        ) {
+                                                                Icon(
+                                                                        Icons.Default.ErrorOutline,
+                                                                        contentDescription = null,
+                                                                        tint = Color(0xFFEF4444),
+                                                                        modifier =
+                                                                                Modifier.size(48.dp)
+                                                                )
+                                                                Spacer(
+                                                                        modifier =
+                                                                                Modifier.height(
+                                                                                        16.dp
+                                                                                )
+                                                                )
+                                                                Text(
+                                                                        text = state.message,
+                                                                        color = Color(0xFFEF4444),
+                                                                        fontSize = 14.sp
+                                                                )
+                                                                Spacer(
+                                                                        modifier =
+                                                                                Modifier.height(
+                                                                                        16.dp
+                                                                                )
+                                                                )
+                                                                Button(
+                                                                        onClick = {
+                                                                                foodViewModel
+                                                                                        .resetRecognitionState()
+                                                                        },
+                                                                        colors =
+                                                                                ButtonDefaults
+                                                                                        .buttonColors(
+                                                                                                containerColor =
+                                                                                                        CoralOrange
+                                                                                        )
+                                                                ) {
+                                                                        Text(
+                                                                                "重试",
+                                                                                color = Color.White
+                                                                        )
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                        else -> {
+                                                // 没有用户时显示提示，有用户时显示默认提示
+                                                Box(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        contentAlignment = Alignment.Center
+                                                ) {
+                                                        if (userId == null) {
+                                                                Column(
+                                                                        horizontalAlignment =
+                                                                                Alignment
+                                                                                        .CenterHorizontally
+                                                                ) {
+                                                                        Text(
+                                                                                text =
+                                                                                        "请先登录以保存识别结果",
+                                                                                color =
+                                                                                        Color(
+                                                                                                0xFF9CA3AF
+                                                                                        ),
+                                                                                fontSize = 14.sp
+                                                                        )
+                                                                        Spacer(
+                                                                                modifier =
+                                                                                        Modifier.height(
+                                                                                                8.dp
+                                                                                        )
+                                                                        )
+                                                                        Text(
+                                                                                text = "点击拍照按钮开始识别",
+                                                                                color =
+                                                                                        Color(
+                                                                                                0xFF9CA3AF
+                                                                                        ),
+                                                                                fontSize = 12.sp
+                                                                        )
+                                                                }
+                                                        } else {
+                                                                Text(
+                                                                        text = "点击拍照按钮开始识别",
+                                                                        color = Color(0xFF9CA3AF),
+                                                                        fontSize = 14.sp
+                                                                )
+                                                        }
+                                                }
                                         }
                                 }
                         }
@@ -493,6 +702,18 @@ fun BoxScope.CornerMarker(alignment: Alignment) {
 /** 菜品卡片组件 */
 @Composable
 fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
+        // 根据菜品名称生成emoji（简化版，实际可以更智能）
+        val emoji =
+                when {
+                        dish.name.contains("牛") || dish.name.contains("肉") -> "🥩"
+                        dish.name.contains("鸡") || dish.name.contains("蛋") -> "🍳"
+                        dish.name.contains("鱼") -> "🐟"
+                        dish.name.contains("菜") ||
+                                dish.name.contains("白菜") ||
+                                dish.name.contains("豆芽") -> "🥬"
+                        dish.name.contains("豆腐") -> "🧈"
+                        else -> "🍽️"
+                }
         Surface(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
                 shape = RoundedCornerShape(16.dp),
@@ -512,7 +733,7 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
                                                         else Color(0xFFFED7AA)
                                                 ),
                                 contentAlignment = Alignment.Center
-                        ) { Text(text = dish.emoji, fontSize = 24.sp) }
+                        ) { Text(text = emoji, fontSize = 24.sp) }
 
                         Spacer(modifier = Modifier.width(16.dp))
 
@@ -536,8 +757,8 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
                                                 Text(
                                                         text =
                                                                 if (dish.isRecommended)
-                                                                        "✓ ${dish.tag}"
-                                                                else "⚠️ ${dish.tag}",
+                                                                        "✓ ${dish.reason ?: "推荐"}"
+                                                                else "⚠️ ${dish.reason ?: "注意"}",
                                                         fontSize = 10.sp,
                                                         color =
                                                                 if (dish.isRecommended)
@@ -556,12 +777,12 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text(
-                                                text = "${dish.calories}kcal",
+                                                text = "${dish.calories.toInt()}kcal",
                                                 fontSize = 10.sp,
                                                 color = Color(0xFF9CA3AF)
                                         )
                                         Text(
-                                                text = "• ${dish.weight}g",
+                                                text = "• 蛋白质 ${dish.protein.toInt()}g",
                                                 fontSize = 10.sp,
                                                 color = Color(0xFF9CA3AF)
                                         )
@@ -570,13 +791,3 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
                 }
         }
 }
-
-/** 菜品数据类 */
-data class DishItem(
-        val name: String,
-        val emoji: String,
-        val calories: Int,
-        val weight: Int,
-        val isRecommended: Boolean,
-        val tag: String
-)
