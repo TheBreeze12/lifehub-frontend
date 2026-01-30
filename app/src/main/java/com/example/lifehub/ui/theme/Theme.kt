@@ -8,35 +8,50 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
         darkColorScheme(
-                primary = ForestGreenDark,
-                secondary = VitalOrangeDark,
-                tertiary = VitalOrangeDark,
+                primary = ForestGreen,
+                secondary = VitalOrange,
+                tertiary = SkyBlue,
                 background = BackgroundDark,
-                surface = BackgroundDark
+                surface = CardBackgroundDark,
+                onPrimary = TextOnPrimary,
+                onSecondary = TextOnPrimary,
+                onBackground = Color.White,
+                onSurface = Color.White,
+                error = ErrorRed
         )
 
 private val LightColorScheme =
         lightColorScheme(
                 primary = ForestGreen,
+                primaryContainer = ForestGreenLight,
                 secondary = VitalOrange,
-                tertiary = VitalOrange,
+                secondaryContainer = VitalOrangeLight,
+                tertiary = SkyBlue,
+                tertiaryContainer = SkyBlueLight,
                 background = BackgroundBeige,
                 surface = CardBackground,
-                onPrimary = CardBackground,
-                onSecondary = CardBackground,
+                surfaceVariant = CardBackgroundTint,
+                onPrimary = TextOnPrimary,
+                onSecondary = TextOnPrimary,
+                onTertiary = TextOnPrimary,
                 onBackground = TextPrimary,
-                onSurface = TextPrimary
+                onSurface = TextPrimary,
+                onSurfaceVariant = TextSecondary,
+                error = ErrorRed,
+                onError = TextOnPrimary,
+                outline = TextTertiary
         )
 
 @Composable
 fun LifeHubTheme(
         darkTheme: Boolean = isSystemInDarkTheme(),
         // Dynamic color is available on Android 12+
-        dynamicColor: Boolean = true,
+        dynamicColor: Boolean = false, // 禁用动态色彩以保持统一的品牌风格
         content: @Composable () -> Unit
 ) {
     val colorScheme =

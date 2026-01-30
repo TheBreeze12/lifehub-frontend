@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,7 +26,7 @@ import androidx.navigation.NavController
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.TripViewModel
 
-/** 行程详情页 - MVP版本 展示完整的行程时间表 */
+/** 运动计划详情页 - MVP版本 展示完整的运动计划时间表 */
 @Composable
 fun TripDetailPage(
         tripId: String,
@@ -54,33 +55,52 @@ fun TripDetailPage(
                                         tripPlan.endDate
                                 )
 
-                        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9FAFB))) {
-                                // 顶部工具栏
-                                TripDetailHeader(
-                                        title = tripPlan.title,
-                                        onBackClick = { navController.popBackStack() },
-                                        onDownloadClick = { /* TODO: 下载离线包 */},
-                                        onEditClick = { /* TODO: 编辑行程 */}
-                                )
-
-                                LazyColumn(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(24.dp),
-                                        verticalArrangement = Arrangement.spacedBy(24.dp)
-                                ) {
-                                        // 天气卡片（暂时使用模拟数据，后续可以集成天气API）
-                                        item {
-                                                WeatherCard(
-                                                        temperature = 15,
-                                                        weather = "晴转多云",
-                                                        humidity = 65,
-                                                        wind = "东风 2级",
-                                                        destination = tripPlan.destination ?: "目的地"
+                        Box(
+                                modifier =
+                                        Modifier.fillMaxSize()
+                                                .background(
+                                                        brush =
+                                                                Brush.verticalGradient(
+                                                                        colors =
+                                                                                listOf(
+                                                                                        Color.White,
+                                                                                        BackgroundGradientStart,
+                                                                                        BackgroundBeige
+                                                                                )
+                                                                )
                                                 )
-                                        }
+                        ) {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                        // 顶部工具栏
+                                        TripDetailHeader(
+                                                title = tripPlan.title,
+                                                onBackClick = { navController.popBackStack() },
+                                                onDownloadClick = { /* TODO: 下载离线包 */},
+                                                onEditClick = { /* TODO: 编辑行程 */}
+                                        )
 
-                                        // 行程时间轴
-                                        items(days) { dayData -> DaySection(dayData = dayData) }
+                                        LazyColumn(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentPadding = PaddingValues(24.dp),
+                                                verticalArrangement = Arrangement.spacedBy(24.dp)
+                                        ) {
+                                                // 天气卡片（暂时使用模拟数据，后续可以集成天气API）
+                                                item {
+                                                        WeatherCard(
+                                                                temperature = 15,
+                                                                weather = "晴转多云",
+                                                                humidity = 65,
+                                                                wind = "东风 2级",
+                                                                destination = tripPlan.destination
+                                                                                ?: "运动区域"
+                                                        )
+                                                }
+
+                                                // 行程时间轴
+                                                items(days) { dayData ->
+                                                        DaySection(dayData = dayData)
+                                                }
+                                        }
                                 }
                         }
                 }
@@ -134,7 +154,7 @@ fun groupItemsByDay(
                                                         TripItemData(
                                                                 placeName = item.placeName,
                                                                 placeType = item.placeType
-                                                                                ?: "attraction",
+                                                                                ?: "walking",
                                                                 typeLabel =
                                                                         getTypeLabel(
                                                                                 item.placeType
@@ -147,7 +167,8 @@ fun groupItemsByDay(
                                                                 time = item.startTime,
                                                                 cost =
                                                                         item.cost?.let {
-                                                                                "¥${it.toInt()}"
+                                                                                // cost字段存储的是卡路里，显示为卡路里消耗
+                                                                                "${it.toInt()}卡"
                                                                         },
                                                                 duration =
                                                                         item.duration?.let {
@@ -174,7 +195,7 @@ fun groupItemsByDay(
                                                         TripItemData(
                                                                 placeName = item.placeName,
                                                                 placeType = item.placeType
-                                                                                ?: "attraction",
+                                                                                ?: "walking",
                                                                 typeLabel =
                                                                         getTypeLabel(
                                                                                 item.placeType
@@ -187,7 +208,8 @@ fun groupItemsByDay(
                                                                 time = item.startTime,
                                                                 cost =
                                                                         item.cost?.let {
-                                                                                "¥${it.toInt()}"
+                                                                                // cost字段存储的是卡路里，显示为卡路里消耗
+                                                                                "${it.toInt()}卡"
                                                                         },
                                                                 duration =
                                                                         item.duration?.let {
@@ -212,6 +234,15 @@ fun formatDate(date: java.time.LocalDate): String {
 /** 获取类型标签 */
 fun getTypeLabel(placeType: String?): String {
         return when (placeType) {
+                // 运动类型
+                "walking" -> "散步"
+                "running" -> "跑步"
+                "cycling" -> "骑行"
+                "park" -> "公园"
+                "gym" -> "健身房"
+                "indoor" -> "室内运动"
+                "outdoor" -> "户外运动"
+                // 兼容旧数据
                 "attraction" -> "景点"
                 "dining" -> "餐饮"
                 "transport" -> "交通"
@@ -223,6 +254,15 @@ fun getTypeLabel(placeType: String?): String {
 /** 获取类型颜色 */
 fun getTypeColor(placeType: String?): Color {
         return when (placeType) {
+                // 运动类型
+                "walking" -> Color(0xFF10B981) // 绿色
+                "running" -> Color(0xFF3B82F6) // 蓝色
+                "cycling" -> Color(0xFFF59E0B) // 橙色
+                "park" -> ForestGreen
+                "gym" -> Color(0xFF8B5CF6) // 紫色
+                "indoor" -> Color(0xFF6366F1) // 靛蓝色
+                "outdoor" -> Color(0xFF10B981) // 绿色
+                // 兼容旧数据
                 "attraction" -> ForestGreen
                 "dining" -> VitalOrange
                 "transport" -> Color(0xFF3B82F6)
@@ -234,6 +274,15 @@ fun getTypeColor(placeType: String?): Color {
 /** 获取类型图标 */
 fun getTypeIcon(placeType: String?): ImageVector {
         return when (placeType) {
+                // 运动类型
+                "walking" -> Icons.Default.DirectionsWalk // 散步图标（需要material-icons-extended）
+                "running" -> Icons.Default.DirectionsRun // 跑步图标（已存在）
+                "cycling" -> Icons.Default.DirectionsBike // 骑行图标（需要material-icons-extended）
+                "park" -> Icons.Default.Park // 公园图标（需要material-icons-extended）
+                "gym" -> Icons.Default.FitnessCenter // 健身房图标（需要material-icons-extended）
+                "indoor" -> Icons.Default.Home // 室内运动
+                "outdoor" -> Icons.Default.WbSunny // 户外运动
+                // 兼容旧数据
                 "attraction" -> Icons.Default.Place
                 "dining" -> Icons.Default.Restaurant
                 "transport" -> Icons.Default.DirectionsCar
@@ -251,35 +300,70 @@ private fun TripDetailHeader(
         onEditClick: () -> Unit
 ) {
         TopAppBar(
-                title = { Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+                title = {
+                        Text(
+                                text = title,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                        )
+                },
                 navigationIcon = {
                         IconButton(onClick = onBackClick) {
-                                Icon(
-                                        imageVector = Icons.Default.ArrowBack,
-                                        contentDescription = "返回"
-                                )
+                                Box(
+                                        modifier =
+                                                Modifier.size(36.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                                ForestGreenLight.copy(alpha = 0.2f)
+                                                        ),
+                                        contentAlignment = Alignment.Center
+                                ) {
+                                        Icon(
+                                                imageVector = Icons.Default.ArrowBack,
+                                                contentDescription = "返回",
+                                                tint = ForestGreenDark
+                                        )
+                                }
                         }
                 },
                 actions = {
                         IconButton(onClick = onDownloadClick) {
-                                Icon(
-                                        imageVector = Icons.Default.Download,
-                                        contentDescription = "下载离线包",
-                                        tint = ForestGreen
-                                )
+                                Box(
+                                        modifier =
+                                                Modifier.size(36.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                                SkyBlueLight.copy(alpha = 0.2f)
+                                                        ),
+                                        contentAlignment = Alignment.Center
+                                ) {
+                                        Icon(
+                                                imageVector = Icons.Default.Download,
+                                                contentDescription = "下载离线包",
+                                                tint = SkyBlue
+                                        )
+                                }
                         }
                         IconButton(onClick = onEditClick) {
-                                Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "编辑",
-                                        tint = TextSecondary
-                                )
+                                Box(
+                                        modifier =
+                                                Modifier.size(36.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                                VitalOrangeLight.copy(alpha = 0.2f)
+                                                        ),
+                                        contentAlignment = Alignment.Center
+                                ) {
+                                        Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "编辑",
+                                                tint = VitalOrange
+                                        )
+                                }
                         }
                 },
-                colors =
-                        TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.White.copy(alpha = 0.8f)
-                        )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
 }
 
@@ -292,10 +376,17 @@ private fun WeatherCard(
         destination: String = "目的地"
 ) {
         Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .shadow(
+                                        elevation = 12.dp,
+                                        shape = RoundedCornerShape(24.dp),
+                                        ambientColor = SkyBlue.copy(alpha = 0.2f),
+                                        spotColor = SkyBlue.copy(alpha = 0.3f)
+                                ),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
                 Box(
                         modifier =
@@ -304,8 +395,9 @@ private fun WeatherCard(
                                                 Brush.linearGradient(
                                                         colors =
                                                                 listOf(
-                                                                        Color(0xFF38BDF8),
-                                                                        Color(0xFF10B981)
+                                                                        SkyBlue,
+                                                                        SkyBlueLight,
+                                                                        ForestGreenLight
                                                                 )
                                                 )
                                         )
@@ -365,20 +457,28 @@ private fun DaySection(dayData: DayData) {
                 // Day 标题
                 Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                         Box(
                                 modifier =
                                         Modifier.width(6.dp)
-                                                .height(24.dp)
+                                                .height(28.dp)
                                                 .clip(RoundedCornerShape(3.dp))
-                                                .background(ForestGreen)
+                                                .background(
+                                                        Brush.verticalGradient(
+                                                                colors =
+                                                                        listOf(
+                                                                                ForestGreen,
+                                                                                ForestGreenDark
+                                                                        )
+                                                        )
+                                                )
                         )
 
                         Text(
                                 text = "Day ${dayData.dayIndex} · ${dayData.date}",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Black,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                         )
                 }
@@ -400,30 +500,56 @@ private fun TimelineItem(item: TripItemData, isLast: Boolean) {
                 // 时间轴指示器
                 Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(26.dp)
+                        modifier = Modifier.width(32.dp)
                 ) {
                         Box(
                                 modifier =
-                                        Modifier.size(26.dp)
+                                        Modifier.size(32.dp)
                                                 .clip(CircleShape)
-                                                .background(Color.White)
-                                                .border(2.dp, item.color, CircleShape),
+                                                .background(
+                                                        Brush.radialGradient(
+                                                                colors =
+                                                                        listOf(
+                                                                                Color.White,
+                                                                                item.color.copy(
+                                                                                        alpha = 0.1f
+                                                                                )
+                                                                        )
+                                                        )
+                                                )
+                                                .border(3.dp, item.color, CircleShape),
                                 contentAlignment = Alignment.Center
                         ) {
                                 Icon(
                                         imageVector = item.icon,
                                         contentDescription = null,
                                         tint = item.color,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(16.dp)
                                 )
                         }
 
                         if (!isLast) {
                                 Box(
                                         modifier =
-                                                Modifier.width(2.dp)
-                                                        .height(60.dp)
-                                                        .background(Color(0xFFE5E7EB))
+                                                Modifier.width(3.dp)
+                                                        .height(70.dp)
+                                                        .background(
+                                                                Brush.verticalGradient(
+                                                                        colors =
+                                                                                listOf(
+                                                                                        item.color
+                                                                                                .copy(
+                                                                                                        alpha =
+                                                                                                                0.3f
+                                                                                                ),
+                                                                                        TextTertiary
+                                                                                                .copy(
+                                                                                                        alpha =
+                                                                                                                0.3f
+                                                                                                )
+                                                                                )
+                                                                )
+                                                        )
                                 )
                         }
                 }
@@ -432,20 +558,27 @@ private fun TimelineItem(item: TripItemData, isLast: Boolean) {
 
                 // 内容卡片
                 Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        modifier =
+                                Modifier.fillMaxWidth()
+                                        .shadow(
+                                                elevation = 8.dp,
+                                                shape = RoundedCornerShape(18.dp),
+                                                ambientColor = item.color.copy(alpha = 0.1f),
+                                                spotColor = item.color.copy(alpha = 0.15f)
+                                        ),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                         Column(
                                 modifier =
                                         Modifier.fillMaxWidth()
                                                 .padding(16.dp)
-                                                .border(
-                                                        width = 0.dp,
-                                                        color = item.color,
-                                                        shape = RoundedCornerShape(16.dp)
-                                                )
+//                                                .border(
+//                                                        width = 0.dp,
+//                                                        color = item.color,
+//                                                        shape = RoundedCornerShape(16.dp)
+//                                                )
                         ) {
                                 Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -460,23 +593,20 @@ private fun TimelineItem(item: TripItemData, isLast: Boolean) {
                                                 modifier = Modifier.weight(1f)
                                         )
 
-                                        Box(
-                                                modifier =
-                                                        Modifier.clip(RoundedCornerShape(8.dp))
-                                                                .background(
-                                                                        item.color.copy(
-                                                                                alpha = 0.1f
-                                                                        )
-                                                                )
-                                                                .padding(
-                                                                        horizontal = 8.dp,
-                                                                        vertical = 2.dp
-                                                                )
+                                        Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = item.color.copy(alpha = 0.15f)
                                         ) {
                                                 Text(
                                                         text = item.typeLabel,
-                                                        fontSize = 9.sp,
-                                                        color = item.color
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = item.color,
+                                                        modifier =
+                                                                Modifier.padding(
+                                                                        horizontal = 10.dp,
+                                                                        vertical = 4.dp
+                                                                )
                                                 )
                                         }
                                 }
@@ -492,7 +622,7 @@ private fun TimelineItem(item: TripItemData, isLast: Boolean) {
                                         }
                                         if (item.cost != null) {
                                                 InfoChip(
-                                                        icon = Icons.Default.Payments,
+                                                        icon = Icons.Default.LocalFireDepartment,
                                                         text = item.cost
                                                 )
                                         }

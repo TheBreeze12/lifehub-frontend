@@ -115,3 +115,4 @@ data class UserPreferencesData(
         @SerializedName("travelPreference") val travelPreference: String?,
         @SerializedName("dailyBudget") val dailyBudget: Int?
 )
+

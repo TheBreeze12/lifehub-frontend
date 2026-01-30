@@ -266,54 +266,69 @@ fun ProfilePage(
 
 @Composable
 private fun ProfileHeader(isLoggedIn: Boolean, nickname: String, onClickAvatar: () -> Unit) {
-    Column(
-            modifier =
-                    Modifier.fillMaxWidth()
-                            .background(BackgroundBeige)
-                            .padding(24.dp)
-                            .padding(top = 24.dp)
+    Box(
+            modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                            brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                            BackgroundGradientStart,
+                                            BackgroundBeige
+                                    )
+                            )
+                    )
+                    .padding(24.dp)
+                    .padding(top = 32.dp)
     ) {
         Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // 头像（可点击）
+            // 头像（可点击）- 带阴影效果
             Box(
-                    modifier =
-                            Modifier.size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                            Brush.linearGradient(
-                                                    colors = listOf(ForestGreen, Color(0xFF059669))
-                                            )
+                    modifier = Modifier
+                            .size(88.dp)
+                            .clip(CircleShape)
+                            .background(
+                                    brush = Brush.linearGradient(
+                                            colors = listOf(ForestGreen, ForestGreenDark)
                                     )
-                                    .border(4.dp, Color.White, CircleShape)
-                                    .clickable(onClick = onClickAvatar),
+                            )
+                            .border(4.dp, Color.White, CircleShape)
+                            .clickable(onClick = onClickAvatar),
                     contentAlignment = Alignment.Center
             ) {
                 Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "用户头像",
                         tint = Color.White,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(44.dp)
                 )
             }
 
             Column {
                 Text(
                         text = nickname,
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                Text(
-                        text = if (isLoggedIn) "已登录" else "点击头像登录",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                )
+                Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isLoggedIn) ForestGreenLight.copy(alpha = 0.3f) 
+                                else LavenderPurple.copy(alpha = 0.2f)
+                ) {
+                    Text(
+                            text = if (isLoggedIn) "✓ 已登录" else "点击头像登录",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isLoggedIn) ForestGreenDark else LavenderPurple,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
     }
@@ -323,21 +338,31 @@ private fun ProfileHeader(isLoggedIn: Boolean, nickname: String, onClickAvatar: 
 private fun StatsCards(navController: NavController, tripCount: Int, dietRecordCount: Int) {
     Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         StatCard(
                 modifier = Modifier.weight(1f),
                 value = dietRecordCount.toString(),
                 label = "用餐记录",
+                gradientColors = listOf(CoralPink.copy(alpha = 0.15f), VitalOrangeLight.copy(alpha = 0.1f)),
+                iconTint = CoralPink,
                 onClick = { navController.navigate(Screen.AllDietRecords.route) }
         )
         StatCard(
                 modifier = Modifier.weight(1f),
                 value = tripCount.toString(),
-                label = "行程规划",
+                label = "运动规划",
+                gradientColors = listOf(ForestGreenLight.copy(alpha = 0.2f), ForestGreen.copy(alpha = 0.1f)),
+                iconTint = ForestGreen,
                 onClick = { navController.navigate(Screen.TripList.route) }
         )
-        StatCard(modifier = Modifier.weight(1f), value = "28", label = "连续打卡")
+        StatCard(
+                modifier = Modifier.weight(1f),
+                value = "28",
+                label = "连续打卡",
+                gradientColors = listOf(SkyBlueLight.copy(alpha = 0.2f), SkyBlue.copy(alpha = 0.1f)),
+                iconTint = SkyBlue
+        )
     }
 }
 
@@ -346,11 +371,13 @@ private fun StatCard(
         modifier: Modifier = Modifier,
         value: String,
         label: String,
+        gradientColors: List<Color> = listOf(Color.White, Color.White),
+        iconTint: Color = ForestGreen,
         onClick: (() -> Unit)? = null
 ) {
     Card(
-            modifier =
-                    modifier.then(
+            modifier = modifier
+                    .then(
                             if (onClick != null) {
                                 Modifier.clickable(onClick = onClick)
                             } else {
@@ -358,15 +385,36 @@ private fun StatCard(
                             }
                     ),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.5f))
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                                brush = Brush.verticalGradient(gradientColors)
+                        )
+                        .background(Color.White.copy(alpha = 0.7f))
+                        .padding(14.dp),
         ) {
-            Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = label, fontSize = 9.sp, color = TextSecondary)
+            Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                        text = value,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = iconTint
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                        text = label,
+                        fontSize = 11.sp,
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

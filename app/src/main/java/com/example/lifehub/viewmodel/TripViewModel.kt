@@ -35,12 +35,20 @@ class TripViewModel : ViewModel() {
     val tripListState: StateFlow<TripListState> = _tripListState.asStateFlow()
 
     /**
-     * 生成行程
+     * 生成运动计划
      * @param userId 用户ID
-     * @param query 用户输入的行程需求
+     * @param query 用户输入的运动需求
      * @param preferences 用户偏好（可选）
+     * @param latitude 用户当前位置纬度（可选）
+     * @param longitude 用户当前位置经度（可选）
      */
-    fun generateTrip(userId: Int, query: String, preferences: UserPreferences? = null) {
+    fun generateTrip(
+            userId: Int,
+            query: String,
+            preferences: UserPreferences? = null,
+            latitude: Double? = null,
+            longitude: Double? = null
+    ) {
         viewModelScope.launch {
             _generateTripState.value = GenerateTripState.Loading
 
@@ -50,14 +58,17 @@ class TripViewModel : ViewModel() {
                                 GenerateTripRequest(
                                         userId = userId,
                                         query = query,
-                                        preferences = preferences
+                                        preferences = preferences,
+                                        latitude = latitude,
+                                        longitude = longitude
                                 )
                         )
 
                 if (response.code == 200 && response.data != null) {
                     _generateTripState.value = GenerateTripState.Success(response.data)
                 } else {
-                    _generateTripState.value = GenerateTripState.Error(response.message ?: "生成行程失败")
+                    _generateTripState.value =
+                            GenerateTripState.Error(response.message ?: "生成运动计划失败")
                 }
             } catch (e: Exception) {
                 _generateTripState.value = GenerateTripState.Error(e.message ?: "网络请求失败")
@@ -168,6 +179,30 @@ class TripViewModel : ViewModel() {
     /** 刷新最近行程 */
     fun refreshRecentTrips(userId: Int) {
         getRecentTrips(userId)
+    }
+
+    /** 重置所有状态（用于清除缓存） */
+    fun resetAllStates() {
+        _generateTripState.value = GenerateTripState.Idle
+        _tripDetailState.value = TripDetailState.Idle
+        _homeTripsState.value = HomeTripsState.Idle
+        _recentTripsState.value = RecentTripsState.Idle
+        _tripListState.value = TripListState.Idle
+    }
+
+    /** 重置首页行程状态 */
+    fun resetHomeTripsState() {
+        _homeTripsState.value = HomeTripsState.Idle
+    }
+
+    /** 重置最近行程状态 */
+    fun resetRecentTripsState() {
+        _recentTripsState.value = RecentTripsState.Idle
+    }
+
+    /** 重置行程列表状态 */
+    fun resetTripListState() {
+        _tripListState.value = TripListState.Idle
     }
 }
 

@@ -35,11 +35,13 @@ data class TripItem(
         @SerializedName("notes") val notes: String?
 )
 
-/** 生成行程请求 */
+/** 生成行程请求（现用于运动计划） */
 data class GenerateTripRequest(
         @SerializedName("userId") val userId: Int,
         @SerializedName("query") val query: String,
-        @SerializedName("preferences") val preferences: UserPreferences?
+        @SerializedName("preferences") val preferences: UserPreferences?,
+        @SerializedName("latitude") val latitude: Double? = null,
+        @SerializedName("longitude") val longitude: Double? = null
 )
 
 /** 生成行程响应 */

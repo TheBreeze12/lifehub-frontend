@@ -108,14 +108,15 @@ class UserViewModel : ViewModel() {
     }
 
     /** 登录（通过获取用户偏好验证用户是否存在） */
-    fun login(userId: Int) {
+    fun login(userId: Int,password: String) {
         viewModelScope.launch {
             _loginState.value = LoginState.Loading
 
             try {
                 // 通过获取用户偏好来验证用户是否存在
-                val response = apiService.getUserPreferences(userId)
-
+//                val response = apiService.getUserPreferences(userId)
+                //通过用户ID和密码来进行验证
+                val response=apiService.getUserData(userId,password)
                 if (response.code == 200 && response.data != null) {
                     _loginState.value =
                             LoginState.Success(

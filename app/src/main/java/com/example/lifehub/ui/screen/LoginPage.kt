@@ -2,6 +2,7 @@ package com.example.lifehub.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -69,94 +73,184 @@ fun LoginPage(
     }
 
     Box(
-            modifier = Modifier.fillMaxSize().background(BackgroundBeige),
+            modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                            brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                            BackgroundGradientStart,
+                                            BackgroundBeige,
+                                            BackgroundGradientEnd.copy(alpha = 0.5f)
+                                    )
+                            )
+                    ),
             contentAlignment = Alignment.Center
     ) {
         Column(
-                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo/标题
-            Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = ForestGreen
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "欢迎回来", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-
-            Text(text = "登录以继续使用", fontSize = 14.sp, color = TextSecondary)
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // 用户名输入框
-            OutlinedTextField(
-                    value = username,
-                    onValueChange = {
-                        username = it
-                        errorMessage = null
-                    },
-                    label = { Text("用户ID") },
-                    placeholder = { Text("请输入用户ID（数字）") },
-                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                            OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = ForestGreen,
-                                    focusedLabelColor = ForestGreen
+            // Logo图标
+            Box(
+                    modifier = Modifier
+                            .size(100.dp)
+                            .shadow(
+                                    elevation = 16.dp,
+                                    shape = CircleShape,
+                                    ambientColor = ForestGreen.copy(alpha = 0.3f),
+                                    spotColor = ForestGreen.copy(alpha = 0.4f)
                             )
-            )
-
-            // 密码输入框
-            OutlinedTextField(
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        errorMessage = null
-                    },
-                    label = { Text("密码") },
-                    placeholder = { Text("请输入密码") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                    imageVector =
-                                            if (passwordVisible) Icons.Default.Visibility
-                                            else Icons.Default.VisibilityOff,
-                                    contentDescription = if (passwordVisible) "隐藏密码" else "显示密码"
-                            )
-                        }
-                    },
-                    visualTransformation =
-                            if (passwordVisible) VisualTransformation.None
-                            else PasswordVisualTransformation(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                            OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = ForestGreen,
-                                    focusedLabelColor = ForestGreen
-                            )
-            )
-
-            // 错误提示
-            if (errorMessage != null) {
-                Text(
-                        text = errorMessage!!,
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.fillMaxWidth()
+                            .clip(CircleShape)
+                            .background(
+                                    brush = Brush.linearGradient(
+                                            colors = listOf(ForestGreen, ForestGreenDark)
+                                    )
+                            ),
+                    contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(50.dp),
+                        tint = Color.White
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text(
+                    text = "欢迎回来",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                    text = "登录开启健康生活",
+                    fontSize = 15.sp,
+                    color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // 输入卡片
+            Card(
+                    modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                    elevation = 12.dp,
+                                    shape = RoundedCornerShape(24.dp),
+                                    ambientColor = ForestGreen.copy(alpha = 0.1f)
+                            ),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 用户名输入框
+                    OutlinedTextField(
+                            value = username,
+                            onValueChange = {
+                                username = it
+                                errorMessage = null
+                            },
+                            label = { Text("用户ID") },
+                            placeholder = { Text("请输入用户ID（数字）") },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = ForestGreen
+                                )
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = ForestGreen,
+                                    focusedLabelColor = ForestGreen,
+                                    unfocusedBorderColor = TextTertiary.copy(alpha = 0.5f),
+                                    cursorColor = ForestGreen
+                            )
+                    )
+
+                    // 密码输入框
+                    OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                errorMessage = null
+                            },
+                            label = { Text("密码") },
+                            placeholder = { Text("请输入密码") },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = ForestGreen
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                            imageVector = if (passwordVisible) Icons.Default.Visibility
+                                                          else Icons.Default.VisibilityOff,
+                                            contentDescription = if (passwordVisible) "隐藏密码" else "显示密码",
+                                            tint = TextTertiary
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None
+                                                   else PasswordVisualTransformation(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = ForestGreen,
+                                    focusedLabelColor = ForestGreen,
+                                    unfocusedBorderColor = TextTertiary.copy(alpha = 0.5f),
+                                    cursorColor = ForestGreen
+                            )
+                    )
+
+                    // 错误提示
+                    if (errorMessage != null) {
+                        Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = ErrorRed.copy(alpha = 0.1f)
+                        ) {
+                            Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = ErrorRed,
+                                        modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                        text = errorMessage!!,
+                                        color = ErrorRed,
+                                        fontSize = 13.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
 
             // 登录按钮
             Button(
@@ -176,38 +270,83 @@ fun LoginPage(
                             return@Button
                         }
 
-                        // 验证密码
-                        if (password != "123") {
-                            errorMessage = "密码错误，请输入123"
-                            return@Button
-                        }
-
-                        // 开始登录（通过获取用户偏好验证用户是否存在）
                         isLoading = true
                         errorMessage = null
-                        viewModel.login(userId)
+                        viewModel.login(userId, password)
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .shadow(
+                                    elevation = 8.dp,
+                                    shape = RoundedCornerShape(16.dp),
+                                    ambientColor = ForestGreen.copy(alpha = 0.3f)
+                            ),
                     enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreen),
-                    shape = RoundedCornerShape(16.dp)
+                    colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            disabledContainerColor = TextTertiary
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(0.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                } else {
-                    Text(
-                            text = "登录",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                    )
+                Box(
+                        modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                        brush = Brush.horizontalGradient(
+                                                colors = listOf(ForestGreen, ForestGreenDark)
+                                        )
+                                ),
+                        contentAlignment = Alignment.Center
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                                text = "登录",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 提示信息
-            Text(text = "提示：用户ID为数字，密码固定为123", fontSize = 12.sp, color = TextSecondary)
+            // 底部装饰
+            Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                        modifier = Modifier
+                                .width(30.dp)
+                                .height(2.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(TextTertiary.copy(alpha = 0.3f))
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                        text = "LifeHub",
+                        fontSize = 12.sp,
+                        color = TextTertiary,
+                        fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                        modifier = Modifier
+                                .width(30.dp)
+                                .height(2.dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(TextTertiary.copy(alpha = 0.3f))
+                )
+            }
         }
     }
 }

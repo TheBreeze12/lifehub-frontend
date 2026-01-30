@@ -76,6 +76,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     
     // CameraX (更新到 1.4.0+ 以支持 16KB 页面对齐)
     implementation("androidx.camera:camera-camera2:1.4.0")
@@ -84,6 +85,9 @@ dependencies {
 
     // Accompanist Permissions (更新到最新版本)
     implementation("com.google.accompanist:accompanist-permissions:0.35.0-alpha")
+    
+    // Google Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

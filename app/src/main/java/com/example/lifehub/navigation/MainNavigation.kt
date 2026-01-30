@@ -18,7 +18,7 @@ import com.example.lifehub.ui.screen.*
 sealed class BottomNavItem(val screen: Screen, val label: String, val icon: ImageVector) {
     object Home : BottomNavItem(Screen.Home, "首页", Icons.Filled.Home)
     object Food : BottomNavItem(Screen.Camera, "餐饮", Icons.Filled.Restaurant)
-    object Trip : BottomNavItem(Screen.TripPlanning, "出行", Icons.Filled.Place)
+    object Trip : BottomNavItem(Screen.TripPlanning, "运动", Icons.Filled.Place)
     object Profile : BottomNavItem(Screen.Profile, "我的", Icons.Filled.Person)
 }
 
