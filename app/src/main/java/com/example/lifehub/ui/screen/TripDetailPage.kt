@@ -23,8 +23,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.lifehub.data.WeatherData
+import com.example.lifehub.network.RetrofitClient
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.TripViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** 运动计划详情页 - MVP版本 展示完整的运动计划时间表 */
 @Composable
@@ -37,6 +41,7 @@ fun TripDetailPage(
         LaunchedEffect(tripId) { tripId.toIntOrNull()?.let { tripViewModel.getTripDetail(it) } }
 
         val tripDetailState by tripViewModel.tripDetailState.collectAsState()
+        var weatherData by remember { mutableStateOf<WeatherData?>(null) }
 
         when (val state = tripDetailState) {
                 is com.example.lifehub.viewmodel.TripDetailState.Loading -> {
@@ -47,6 +52,22 @@ fun TripDetailPage(
                 }
                 is com.example.lifehub.viewmodel.TripDetailState.Success -> {
                         val tripPlan = state.tripPlan
+                        // 拉取天气数据（按计划ID）
+                        LaunchedEffect(tripId) {
+                                val id = tripId.toIntOrNull()
+                                if (id != null) {
+                                        try {
+                                                val resp =
+                                                        withContext(Dispatchers.IO) {
+                                                                RetrofitClient.apiService
+                                                                        .getWeatherByPlan(id)
+                                                        }
+                                                weatherData = resp.data
+                                        } catch (_: Exception) {
+                                                // 保持静默失败，UI使用默认占位
+                                        }
+                                }
+                        }
                         // 将行程数据转换为UI需要的格式
                         val days =
                                 groupItemsByDay(
@@ -87,10 +108,24 @@ fun TripDetailPage(
                                                 // 天气卡片（暂时使用模拟数据，后续可以集成天气API）
                                                 item {
                                                         WeatherCard(
-                                                                temperature = 15,
-                                                                weather = "晴转多云",
-                                                                humidity = 65,
-                                                                wind = "东风 2级",
+                                                                temperature =
+                                                                        (weatherData?.temperature
+                                                                                ?.toString()
+                                                                                ?: "--"),
+                                                                weather =
+                                                                        weatherLabelFromCode(
+                                                                                weatherData
+                                                                                        ?.weathercode
+                                                                        ),
+                                                                humidity =
+                                                                        65, // Open-Meteo当前响应未提供湿度，此处保持占位
+                                                                wind =
+                                                                        windLabel(
+                                                                                weatherData
+                                                                                        ?.windspeed,
+                                                                                weatherData
+                                                                                        ?.winddirection
+                                                                        ),
                                                                 destination = tripPlan.destination
                                                                                 ?: "运动区域"
                                                         )
@@ -369,7 +404,7 @@ private fun TripDetailHeader(
 
 @Composable
 private fun WeatherCard(
-        temperature: Int,
+        temperature: String,
         weather: String,
         humidity: Int,
         wind: String,
@@ -449,6 +484,31 @@ private fun WeatherCard(
                         }
                 }
         }
+}
+
+private fun weatherLabelFromCode(code: Int?): String {
+        return when (code) {
+                0 -> "晴"
+                1, 2 -> "多云"
+                3 -> "阴"
+                45, 48 -> "雾/霾"
+                51, 53, 55 -> "细雨"
+                61, 63, 65 -> "小/中/大雨"
+                66, 67 -> "冻雨"
+                71, 73, 75 -> "小/中/大雪"
+                77 -> "雪粒"
+                80, 81, 82 -> "阵雨"
+                85, 86 -> "阵雪"
+                95 -> "雷雨"
+                96, 99 -> "雷雨伴冰雹"
+                else -> "天气未知"
+        }
+}
+
+private fun windLabel(speed: Double?, direction: Double?): String {
+        val s = speed?.let { String.format("%.1f m/s", it) } ?: "--"
+        val d = direction?.let { String.format("%.0f°", it) } ?: "--"
+        return "风速 $s 风向 $d"
 }
 
 @Composable
@@ -571,15 +631,16 @@ private fun TimelineItem(item: TripItemData, isLast: Boolean) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                         Column(
-                                modifier =
-                                        Modifier.fillMaxWidth()
-                                                .padding(16.dp)
-//                                                .border(
-//                                                        width = 0.dp,
-//                                                        color = item.color,
-//                                                        shape = RoundedCornerShape(16.dp)
-//                                                )
-                        ) {
+                                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                                //                                                .border(
+                                //                                                        width =
+                                // 0.dp,
+                                //                                                        color =
+                                // item.color,
+                                //                                                        shape =
+                                // RoundedCornerShape(16.dp)
+                                //                                                )
+                                ) {
                                 Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,

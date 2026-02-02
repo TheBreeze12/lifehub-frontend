@@ -1,5 +1,6 @@
 package com.example.lifehub.navigation
 
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -121,6 +122,17 @@ fun MainNavigation() {
                             // 登录成功后返回个人中心页面
                             navController.popBackStack()
                             navController.navigate(Screen.Profile.route)
+                        }
+                )
+            }
+
+            composable(Screen.Register.route) {
+                RegisterPage(
+                        navController = navController,
+                        onRegisterSuccess = { userId ->
+                            // 注册成功后返回登录页面或直接登录
+                            navController.popBackStack()
+                            // 或者直接登录
                         }
                 )
             }

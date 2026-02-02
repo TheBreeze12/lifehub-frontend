@@ -25,17 +25,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
-import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.theme.*
-import com.example.lifehub.viewmodel.LoginState
+import com.example.lifehub.viewmodel.RegisterState
 import com.example.lifehub.viewmodel.UserViewModel
-import com.example.lifehub.ui.screen.*
 
-/** 登录页面 */
+/** 注册页面 */
 @Composable
-fun LoginPage(
+fun RegisterPage(
         navController: NavController,
-        onLoginSuccess: (Int) -> Unit,
+        onRegisterSuccess: (Int) -> Unit,
         viewModel: UserViewModel = viewModel()
 ) {
         val context = LocalContext.current
@@ -43,31 +41,33 @@ fun LoginPage(
 
         var nickname by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
+        var confirmPassword by remember { mutableStateOf("") }
         var passwordVisible by remember { mutableStateOf(false) }
+        var confirmPasswordVisible by remember { mutableStateOf(false) }
         var isLoading by remember { mutableStateOf(false) }
         var errorMessage by remember { mutableStateOf<String?>(null) }
 
-        // 观察登录状态
-        val loginState by viewModel.loginState.collectAsState()
+        // 观察注册状态
+        val registerState by viewModel.registerState.collectAsState()
 
-        // 处理登录成功
-        LaunchedEffect(loginState) {
-                when (val state = loginState) {
-                        is LoginState.Success -> {
+        // 处理注册成功
+        LaunchedEffect(registerState) {
+                when (val state = registerState) {
+                        is RegisterState.Success -> {
                                 // 保存登录信息
                                 UserSession.saveLogin(
                                         userId = state.userId,
                                         username = nickname,
-                                        nickname = state.nickname
+                                        nickname = nickname
                                 )
                                 isLoading = false
-                                onLoginSuccess(state.userId)
+                                onRegisterSuccess(state.userId)
                         }
-                        is LoginState.Error -> {
+                        is RegisterState.Error -> {
                                 errorMessage = state.message
                                 isLoading = false
                         }
-                        is LoginState.Loading -> {
+                        is RegisterState.Loading -> {
                                 isLoading = true
                         }
                         else -> {}
@@ -121,7 +121,7 @@ fun LoginPage(
                                 contentAlignment = Alignment.Center
                         ) {
                                 Icon(
-                                        imageVector = Icons.Default.Person,
+                                        imageVector = Icons.Default.PersonAdd,
                                         contentDescription = null,
                                         modifier = Modifier.size(50.dp),
                                         tint = Color.White
@@ -131,7 +131,7 @@ fun LoginPage(
                         Spacer(modifier = Modifier.height(28.dp))
 
                         Text(
-                                text = "欢迎回来",
+                                text = "创建账户",
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
@@ -139,7 +139,7 @@ fun LoginPage(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Text(text = "登录开启健康生活", fontSize = 15.sp, color = TextSecondary)
+                        Text(text = "加入LifeHub，开启智能生活", fontSize = 15.sp, color = TextSecondary)
 
                         Spacer(modifier = Modifier.height(40.dp))
 
@@ -160,7 +160,7 @@ fun LoginPage(
                                         modifier = Modifier.padding(24.dp),
                                         verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                        // 用户名输入框
+                                        // 昵称输入框
                                         OutlinedTextField(
                                                 value = nickname,
                                                 onValueChange = {
@@ -177,10 +177,6 @@ fun LoginPage(
                                                         )
                                                 },
                                                 singleLine = true,
-                                                keyboardOptions =
-                                                        KeyboardOptions(
-                                                                keyboardType = KeyboardType.Number
-                                                        ),
                                                 modifier = Modifier.fillMaxWidth(),
                                                 shape = RoundedCornerShape(14.dp),
                                                 colors =
@@ -203,7 +199,7 @@ fun LoginPage(
                                                         errorMessage = null
                                                 },
                                                 label = { Text("密码") },
-                                                placeholder = { Text("请输入密码") },
+                                                placeholder = { Text("请输入密码（至少6位）") },
                                                 leadingIcon = {
                                                         Icon(
                                                                 Icons.Default.Lock,
@@ -236,6 +232,70 @@ fun LoginPage(
                                                 },
                                                 visualTransformation =
                                                         if (passwordVisible)
+                                                                VisualTransformation.None
+                                                        else PasswordVisualTransformation(),
+                                                singleLine = true,
+                                                keyboardOptions =
+                                                        KeyboardOptions(
+                                                                keyboardType = KeyboardType.Password
+                                                        ),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(14.dp),
+                                                colors =
+                                                        OutlinedTextFieldDefaults.colors(
+                                                                focusedBorderColor = ForestGreen,
+                                                                focusedLabelColor = ForestGreen,
+                                                                unfocusedBorderColor =
+                                                                        TextTertiary.copy(
+                                                                                alpha = 0.5f
+                                                                        ),
+                                                                cursorColor = ForestGreen
+                                                        )
+                                        )
+
+                                        // 确认密码输入框
+                                        OutlinedTextField(
+                                                value = confirmPassword,
+                                                onValueChange = {
+                                                        confirmPassword = it
+                                                        errorMessage = null
+                                                },
+                                                label = { Text("确认密码") },
+                                                placeholder = { Text("请再次输入密码") },
+                                                leadingIcon = {
+                                                        Icon(
+                                                                Icons.Default.Lock,
+                                                                contentDescription = null,
+                                                                tint = ForestGreen
+                                                        )
+                                                },
+                                                trailingIcon = {
+                                                        IconButton(
+                                                                onClick = {
+                                                                        confirmPasswordVisible =
+                                                                                !confirmPasswordVisible
+                                                                }
+                                                        ) {
+                                                                Icon(
+                                                                        imageVector =
+                                                                                if (confirmPasswordVisible
+                                                                                )
+                                                                                        Icons.Default
+                                                                                                .Visibility
+                                                                                else
+                                                                                        Icons.Default
+                                                                                                .VisibilityOff,
+                                                                        contentDescription =
+                                                                                if (confirmPasswordVisible
+                                                                                )
+                                                                                        "隐藏密码"
+                                                                                else "显示密码",
+                                                                        tint = TextTertiary
+                                                                )
+                                                        }
+                                                },
+                                                visualTransformation =
+                                                        if (confirmPasswordVisible)
                                                                 VisualTransformation.None
                                                         else PasswordVisualTransformation(),
                                                 singleLine = true,
@@ -293,28 +353,44 @@ fun LoginPage(
 
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        // 登录按钮
+                        // 注册按钮
                         Button(
                                 onClick = {
-                                        if (nickname.isBlank()) {
-                                                errorMessage = "请输入用户昵称"
-                                                return@Button
+                                        // 验证输入
+                                        when {
+                                                nickname.isBlank() -> {
+                                                        errorMessage = "请输入用户昵称"
+                                                        return@Button
+                                                }
+                                                nickname.length > 50 -> {
+                                                        errorMessage = "昵称不能超过50个字符"
+                                                        return@Button
+                                                }
+                                                password.isBlank() -> {
+                                                        errorMessage = "请输入密码"
+                                                        return@Button
+                                                }
+                                                password.length < 6 -> {
+                                                        errorMessage = "密码至少需要6位"
+                                                        return@Button
+                                                }
+                                                password.length > 128 -> {
+                                                        errorMessage = "密码不能超过128个字符"
+                                                        return@Button
+                                                }
+                                                confirmPassword.isBlank() -> {
+                                                        errorMessage = "请确认密码"
+                                                        return@Button
+                                                }
+                                                password != confirmPassword -> {
+                                                        errorMessage = "两次输入的密码不一致"
+                                                        return@Button
+                                                }
                                         }
-                                        if (password.isBlank()) {
-                                                errorMessage = "请输入密码"
-                                                return@Button
-                                        }
-                                        //
-                                        //                        val userId =
-                                        // username.toIntOrNull()
-                                        //                        if (userId == null) {
-                                        //                            errorMessage = "用户ID必须是数字"
-                                        //                            return@Button
-                                        //                        }
 
                                         isLoading = true
                                         errorMessage = null
-                                        viewModel.login(nickname, password)
+                                        viewModel.register(nickname, password)
                                 },
                                 modifier =
                                         Modifier.fillMaxWidth()
@@ -357,7 +433,7 @@ fun LoginPage(
                                                 )
                                         } else {
                                                 Text(
-                                                        text = "登录",
+                                                        text = "注册",
                                                         fontSize = 16.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = Color.White
@@ -368,8 +444,9 @@ fun LoginPage(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        // 返回登录按钮
                         Button(
-                                onClick = { navController.navigate(Screen.Register.route) },
+                                onClick = { navController.popBackStack() },
                                 colors =
                                         ButtonDefaults.buttonColors(
                                                 containerColor = Color.Transparent,
@@ -379,7 +456,7 @@ fun LoginPage(
                                 contentPadding = PaddingValues(0.dp)
                         ) {
                                 Text(
-                                        text = "没有账号？注册一个",
+                                        text = "已有账号？立即登录",
                                         fontSize = 14.sp,
                                         color = ForestGreen,
                                         fontWeight = FontWeight.Medium

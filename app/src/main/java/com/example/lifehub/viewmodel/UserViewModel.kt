@@ -33,6 +33,10 @@ class UserViewModel : ViewModel() {
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
 
+    // 注册状态
+    private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
+    val registerState: StateFlow<RegisterState> = _registerState.asStateFlow()
+
     /** 更新用户偏好设置 */
     fun updatePreferences(
             userId: Int,
@@ -108,19 +112,19 @@ class UserViewModel : ViewModel() {
     }
 
     /** 登录（通过获取用户偏好验证用户是否存在） */
-    fun login(userId: Int,password: String) {
+    fun login(nickname: String, password: String) {
         viewModelScope.launch {
             _loginState.value = LoginState.Loading
 
             try {
                 // 通过获取用户偏好来验证用户是否存在
-//                val response = apiService.getUserPreferences(userId)
-                //通过用户ID和密码来进行验证
-                val response=apiService.getUserData(userId,password)
+                //                val response = apiService.getUserPreferences(userId)
+                // 通过用户ID和密码来进行验证
+                val response = apiService.getUserData(nickname, password)
                 if (response.code == 200 && response.data != null) {
                     _loginState.value =
                             LoginState.Success(
-                                    userId = userId,
+                                    userId = response.data.userId,
                                     nickname = response.data.nickname ?: "健康达人"
                             )
                     // 同时获取用户偏好
@@ -130,6 +134,26 @@ class UserViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _loginState.value = LoginState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
+    /** 注册 */
+    fun register(nickname: String, password: String) {
+        viewModelScope.launch {
+            _registerState.value = RegisterState.Loading
+            try {
+                val response =
+                        apiService.registerUser(
+                                UserRegistrationRequest(nickname = nickname, password = password)
+                        )
+                if (response.code == 200 && response.userId != null) {
+                    _registerState.value = RegisterState.Success(response.userId)
+                } else {
+                    _registerState.value = RegisterState.Error(response.message ?: "注册失败")
+                }
+            } catch (e: Exception) {
+                _registerState.value = RegisterState.Error(e.message ?: "网络请求失败")
             }
         }
     }
@@ -204,4 +228,12 @@ sealed class LoginState {
     object Loading : LoginState()
     data class Success(val userId: Int, val nickname: String) : LoginState()
     data class Error(val message: String) : LoginState()
+}
+
+// 注册状态
+sealed class RegisterState {
+    object Idle : RegisterState()
+    object Loading : RegisterState()
+    data class Success(val userId: Int) : RegisterState()
+    data class Error(val message: String) : RegisterState()
 }

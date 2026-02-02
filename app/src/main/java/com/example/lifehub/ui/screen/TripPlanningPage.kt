@@ -212,8 +212,14 @@ fun TripPlanningPage(navController: NavController, tripViewModel: TripViewModel 
                                                 )
                                 ) {
                                         Column(
-                                                modifier = Modifier.padding(16.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
+                                                modifier =
+                                                        Modifier.fillMaxWidth()
+                                                                .padding(
+                                                                        vertical = 48.dp,
+                                                                        horizontal = 24.dp
+                                                                ),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center
                                         ) {
                                                 Icon(
                                                         Icons.Default.Lock,
@@ -278,24 +284,24 @@ suspend fun getCurrentLocation(context: Context): Location? {
 @Composable
 private fun TripPlanningHeader(onBackClick: () -> Unit = {}) {
         Box(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .background(
-                                Brush.linearGradient(
-                                        colors = listOf(ForestGreen, ForestGreenDark)
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .height(120.dp)
+                                .background(
+                                        Brush.linearGradient(
+                                                colors = listOf(ForestGreen, ForestGreenDark)
+                                        )
                                 )
-                        )
         ) {
                 // 返回按钮
                 IconButton(
                         onClick = onBackClick,
-                        modifier = Modifier
-                                .padding(16.dp)
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f))
-                                .align(Alignment.TopStart)
+                        modifier =
+                                Modifier.padding(16.dp)
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.2f))
+                                        .align(Alignment.TopStart)
                 ) {
                         Icon(
                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -329,10 +335,7 @@ private fun TripPlanningHeader(onBackClick: () -> Unit = {}) {
 
 @Composable
 private fun Chip(text: String) {
-        Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White.copy(alpha = 0.2f)
-        ) {
+        Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.2f)) {
                 Text(
                         text = text,
                         fontSize = 11.sp,
@@ -351,10 +354,7 @@ private fun InputCard(
         onGenerateClick: () -> Unit
 ) {
         Card(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = (-50).dp)
-                        .padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().offset(y = (-50).dp).padding(horizontal = 4.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
@@ -365,14 +365,18 @@ private fun InputCard(
                 ) {
                         // 麦克风图标（装饰用）- 带渐变效果
                         Box(
-                                modifier = Modifier
-                                        .size(76.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                                Brush.linearGradient(
-                                                        colors = listOf(ForestGreen, ForestGreenDark)
-                                                )
-                                        ),
+                                modifier =
+                                        Modifier.size(76.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                        Brush.linearGradient(
+                                                                colors =
+                                                                        listOf(
+                                                                                ForestGreen,
+                                                                                ForestGreenDark
+                                                                        )
+                                                        )
+                                                ),
                                 contentAlignment = Alignment.Center
                         ) {
                                 Icon(
@@ -625,17 +629,26 @@ fun RecentTripItem(
                                 modifier = Modifier.weight(1f)
                         ) {
                                 Box(
-                                        modifier = Modifier
-                                                .size(44.dp)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(
-                                                        Brush.linearGradient(
-                                                                colors = listOf(
-                                                                        ForestGreenLight.copy(alpha = 0.3f),
-                                                                        ForestGreen.copy(alpha = 0.2f)
+                                        modifier =
+                                                Modifier.size(44.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                                Brush.linearGradient(
+                                                                        colors =
+                                                                                listOf(
+                                                                                        ForestGreenLight
+                                                                                                .copy(
+                                                                                                        alpha =
+                                                                                                                0.3f
+                                                                                                ),
+                                                                                        ForestGreen
+                                                                                                .copy(
+                                                                                                        alpha =
+                                                                                                                0.2f
+                                                                                                )
+                                                                                )
                                                                 )
-                                                        )
-                                                ),
+                                                        ),
                                         contentAlignment = Alignment.Center
                                 ) {
                                         Icon(
@@ -657,11 +670,20 @@ fun RecentTripItem(
                                         if (destination != null || dateRange != null) {
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                        text = buildString {
-                                                                destination?.let { append(it) }
-                                                                if (destination != null && dateRange != null) append(" · ")
-                                                                dateRange?.let { append(it) }
-                                                        },
+                                                        text =
+                                                                buildString {
+                                                                        destination?.let {
+                                                                                append(it)
+                                                                        }
+                                                                        if (destination != null &&
+                                                                                        dateRange !=
+                                                                                                null
+                                                                        )
+                                                                                append(" · ")
+                                                                        dateRange?.let {
+                                                                                append(it)
+                                                                        }
+                                                                },
                                                         fontSize = 12.sp,
                                                         color = TextSecondary,
                                                         maxLines = 1
@@ -678,7 +700,11 @@ fun RecentTripItem(
                                                                 fontSize = 10.sp,
                                                                 color = ForestGreenDark,
                                                                 fontWeight = FontWeight.Medium,
-                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                                modifier =
+                                                                        Modifier.padding(
+                                                                                horizontal = 8.dp,
+                                                                                vertical = 3.dp
+                                                                        )
                                                         )
                                                 }
                                         }
@@ -686,10 +712,10 @@ fun RecentTripItem(
                         }
 
                         Box(
-                                modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .background(ForestGreenLight.copy(alpha = 0.15f)),
+                                modifier =
+                                        Modifier.size(30.dp)
+                                                .clip(CircleShape)
+                                                .background(ForestGreenLight.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                         ) {
                                 Icon(

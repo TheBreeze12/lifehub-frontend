@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -116,15 +117,17 @@ fun HomePage(
 
         // 动画效果
         val infiniteTransition = rememberInfiniteTransition(label = "greeting")
-        val greetingAlpha by infiniteTransition.animateFloat(
-                initialValue = 0.8f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                        animation = tween(2000),
-                        repeatMode = RepeatMode.Reverse
-                ),
-                label = "greetingAlpha"
-        )
+        val greetingAlpha by
+                infiniteTransition.animateFloat(
+                        initialValue = 0.8f,
+                        targetValue = 1f,
+                        animationSpec =
+                                infiniteRepeatable(
+                                        animation = tween(2000),
+                                        repeatMode = RepeatMode.Reverse
+                                ),
+                        label = "greetingAlpha"
+                )
 
         // 获取当前时间段的问候语
         val greeting = remember {
@@ -140,30 +143,34 @@ fun HomePage(
                 }
         }
 
-        Box(
-                modifier = Modifier.fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
                 // 渐变背景
                 Box(
-                        modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                        brush = Brush.verticalGradient(
-                                                colors = listOf(
-                                                        BackgroundGradientStart,
-                                                        BackgroundBeige,
-                                                        BackgroundGradientEnd.copy(alpha = 0.3f)
-                                                )
+                        modifier =
+                                Modifier.fillMaxSize()
+                                        .background(
+                                                brush =
+                                                        Brush.verticalGradient(
+                                                                colors =
+                                                                        listOf(
+                                                                                BackgroundGradientStart,
+                                                                                BackgroundBeige,
+                                                                                BackgroundGradientEnd
+                                                                                        .copy(
+                                                                                                alpha =
+                                                                                                        0.3f
+                                                                                        )
+                                                                        )
+                                                        )
                                         )
-                                )
                 )
 
                 Column(
-                        modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(scrollState)
-                                .padding(horizontal = 20.dp)
-                                .padding(top = 16.dp, bottom = 24.dp)
+                        modifier =
+                                Modifier.fillMaxSize()
+                                        .verticalScroll(scrollState)
+                                        .padding(horizontal = 20.dp)
+                                        .padding(top = 16.dp, bottom = 24.dp)
                 ) {
                         // 顶部问候语
                         Row(
@@ -226,7 +233,9 @@ fun HomePage(
                                         title = "运动规划",
                                         subtitle = "AI生成计划",
                                         gradientColors = listOf(ForestGreen, ForestGreenLight),
-                                        onClick = { navController.navigate(Screen.TripPlanning.route) }
+                                        onClick = {
+                                                navController.navigate(Screen.TripPlanning.route)
+                                        }
                                 )
                         }
 
@@ -234,14 +243,15 @@ fun HomePage(
 
                         // 今日饮食卡片
                         Card(
-                                modifier = Modifier
-                                        .fillMaxWidth()
-                                        .shadow(
-                                                elevation = 8.dp,
-                                                shape = RoundedCornerShape(20.dp),
-                                                ambientColor = ForestGreen.copy(alpha = 0.1f),
-                                                spotColor = ForestGreen.copy(alpha = 0.1f)
-                                        ),
+                                modifier =
+                                        Modifier.fillMaxWidth()
+                                                .shadow(
+                                                        elevation = 8.dp,
+                                                        shape = RoundedCornerShape(20.dp),
+                                                        ambientColor =
+                                                                ForestGreen.copy(alpha = 0.1f),
+                                                        spotColor = ForestGreen.copy(alpha = 0.1f)
+                                                ),
                                 shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
@@ -251,19 +261,33 @@ fun HomePage(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Row(
+                                                        verticalAlignment =
+                                                                Alignment.CenterVertically
+                                                ) {
                                                         Box(
-                                                                modifier = Modifier
-                                                                        .size(32.dp)
-                                                                        .clip(RoundedCornerShape(8.dp))
-                                                                        .background(ForestGreenLight.copy(alpha = 0.3f)),
+                                                                modifier =
+                                                                        Modifier.size(32.dp)
+                                                                                .clip(
+                                                                                        RoundedCornerShape(
+                                                                                                8.dp
+                                                                                        )
+                                                                                )
+                                                                                .background(
+                                                                                        ForestGreenLight
+                                                                                                .copy(
+                                                                                                        alpha =
+                                                                                                                0.3f
+                                                                                                )
+                                                                                ),
                                                                 contentAlignment = Alignment.Center
                                                         ) {
                                                                 Icon(
                                                                         Icons.Default.Restaurant,
                                                                         contentDescription = null,
                                                                         tint = ForestGreenDark,
-                                                                        modifier = Modifier.size(18.dp)
+                                                                        modifier =
+                                                                                Modifier.size(18.dp)
                                                                 )
                                                         }
                                                         Spacer(modifier = Modifier.width(10.dp))
@@ -279,11 +303,16 @@ fun HomePage(
                                                         fontSize = 12.sp,
                                                         color = ForestGreen,
                                                         fontWeight = FontWeight.Medium,
-                                                        modifier = Modifier.clickable {
-                                                                navController.navigate(
-                                                                        com.example.lifehub.navigation.Screen.TodayDietRecords.route
-                                                                )
-                                                        }
+                                                        modifier =
+                                                                Modifier.clickable {
+                                                                        navController.navigate(
+                                                                                com.example.lifehub
+                                                                                        .navigation
+                                                                                        .Screen
+                                                                                        .TodayDietRecords
+                                                                                        .route
+                                                                        )
+                                                                }
                                                 )
                                         }
 
@@ -316,32 +345,53 @@ fun HomePage(
                         if (!isLoggedIn) {
                                 // 未登录状态：显示提示卡片
                                 Card(
-                                        modifier = Modifier
-                                                .fillMaxWidth()
-                                                .shadow(
-                                                        elevation = 6.dp,
-                                                        shape = RoundedCornerShape(20.dp),
-                                                        ambientColor = LavenderPurple.copy(alpha = 0.1f)
-                                                ),
+                                        modifier =
+                                                Modifier.fillMaxWidth()
+                                                        .shadow(
+                                                                elevation = 6.dp,
+                                                                shape = RoundedCornerShape(20.dp),
+                                                                ambientColor =
+                                                                        LavenderPurple.copy(
+                                                                                alpha = 0.1f
+                                                                        )
+                                                        ),
                                         shape = RoundedCornerShape(20.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                                        colors =
+                                                CardDefaults.cardColors(
+                                                        containerColor = Color.White
+                                                )
                                 ) {
                                         Column(
-                                                modifier = Modifier.padding(24.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
+                                                modifier =
+                                                        Modifier.fillMaxWidth()
+                                                                .padding(
+                                                                        vertical = 48.dp,
+                                                                        horizontal = 24.dp
+                                                                ),
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.Center
                                         ) {
                                                 Box(
-                                                        modifier = Modifier
-                                                                .size(56.dp)
-                                                                .clip(CircleShape)
-                                                                .background(
-                                                                        Brush.linearGradient(
-                                                                                colors = listOf(
-                                                                                        SkyBlueLight.copy(alpha = 0.5f),
-                                                                                        LavenderPurple.copy(alpha = 0.5f)
+                                                        modifier =
+                                                                Modifier.size(56.dp)
+                                                                        .clip(CircleShape)
+                                                                        .background(
+                                                                                Brush.linearGradient(
+                                                                                        colors =
+                                                                                                listOf(
+                                                                                                        SkyBlueLight
+                                                                                                                .copy(
+                                                                                                                        alpha =
+                                                                                                                                0.5f
+                                                                                                                ),
+                                                                                                        LavenderPurple
+                                                                                                                .copy(
+                                                                                                                        alpha =
+                                                                                                                                0.5f
+                                                                                                                )
+                                                                                                )
                                                                                 )
-                                                                        )
-                                                                ),
+                                                                        ),
                                                         contentAlignment = Alignment.Center
                                                 ) {
                                                         Icon(
@@ -370,7 +420,9 @@ fun HomePage(
                                 when (val state = homeTripsState) {
                                         is com.example.lifehub.viewmodel.HomeTripsState.Loading -> {
                                                 Box(
-                                                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                                                        modifier =
+                                                                Modifier.fillMaxWidth()
+                                                                        .height(120.dp),
                                                         contentAlignment = Alignment.Center
                                                 ) { CircularProgressIndicator(color = ForestGreen) }
                                         }
@@ -379,46 +431,78 @@ fun HomePage(
                                                         // 显示第一个运动计划
                                                         val firstTrip = state.trips[0]
                                                         HomeTripCard(
-                                                        trip = firstTrip,
+                                                                trip = firstTrip,
+                                                                onClick = {
+                                                                        navController.navigate(
+                                                                                Screen.TripDetail
+                                                                                        .createRoute(
+                                                                                                firstTrip
+                                                                                                        .tripId
+                                                                                                        .toString()
+                                                                                        )
+                                                                        )
+                                                                }
+                                                        )
+
+                                                        // 如果有多个运动计划，显示横向滚动列表
+                                                        if (state.trips.size > 1) {
+                                                                Spacer(
+                                                                        modifier =
+                                                                                Modifier.height(
+                                                                                        16.dp
+                                                                                )
+                                                                )
+                                                                LazyRow(
+                                                                        horizontalArrangement =
+                                                                                Arrangement
+                                                                                        .spacedBy(
+                                                                                                12.dp
+                                                                                        ),
+                                                                        modifier =
+                                                                                Modifier.fillMaxWidth()
+                                                                ) {
+                                                                        items(
+                                                                                state.trips.drop(1)
+                                                                        ) { trip ->
+                                                                                HomeTripCardSmall(
+                                                                                        trip = trip,
+                                                                                        onClick = {
+                                                                                                navController
+                                                                                                        .navigate(
+                                                                                                                Screen.TripDetail
+                                                                                                                        .createRoute(
+                                                                                                                                trip.tripId
+                                                                                                                                        .toString()
+                                                                                                                        )
+                                                                                                        )
+                                                                                        }
+                                                                                )
+                                                                        }
+                                                                }
+                                                        }
+                                                } else {
+                                                        // 没有运动计划时显示空状态
+                                                        EmptyTripCard(
+                                                                onClick = {
+                                                                        navController.navigate(
+                                                                                Screen.TripPlanning
+                                                                                        .route
+                                                                        )
+                                                                }
+                                                        )
+                                                }
+                                        }
+                                        is com.example.lifehub.viewmodel.HomeTripsState.Error -> {
+                                                // 错误时显示空状态，点击可跳转到规划页面
+                                                EmptyTripCard(
                                                         onClick = {
                                                                 navController.navigate(
-                                                                        Screen.TripDetail
-                                                                                .createRoute(
-                                                                                        firstTrip
-                                                                                                .tripId
-                                                                                                .toString()
-                                                                                )
+                                                                        Screen.TripPlanning.route
                                                                 )
                                                         }
                                                 )
-
-                                                // 如果有多个运动计划，显示横向滚动列表
-                                                if (state.trips.size > 1) {
-                                                        Spacer(modifier = Modifier.height(16.dp))
-                                                        LazyRow(
-                                                                horizontalArrangement =
-                                                                        Arrangement.spacedBy(12.dp),
-                                                                modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                                items(state.trips.drop(1)) { trip ->
-                                                                        HomeTripCardSmall(
-                                                                                trip = trip,
-                                                                                onClick = {
-                                                                                        navController
-                                                                                                .navigate(
-                                                                                                        Screen.TripDetail
-                                                                                                                .createRoute(
-                                                                                                                        trip.tripId
-                                                                                                                                .toString()
-                                                                                                                )
-                                                                                                )
-                                                                                }
-                                                                        )
-                                                                }
-                                                        }
-                                                }
-                                        } else {
-                                                // 没有运动计划时显示空状态
+                                        }
+                                        else -> {
                                                 EmptyTripCard(
                                                         onClick = {
                                                                 navController.navigate(
@@ -428,29 +512,9 @@ fun HomePage(
                                                 )
                                         }
                                 }
-                                is com.example.lifehub.viewmodel.HomeTripsState.Error -> {
-                                        // 错误时显示空状态，点击可跳转到规划页面
-                                        EmptyTripCard(
-                                                onClick = {
-                                                        navController.navigate(
-                                                                Screen.TripPlanning.route
-                                                        )
-                                                }
-                                        )
-                                }
-                                else -> {
-                                        EmptyTripCard(
-                                                onClick = {
-                                                        navController.navigate(
-                                                                Screen.TripPlanning.route
-                                                        )
-                                                }
-                                        )
-                                }
                         }
                 }
         }
-}
 }
 
 /** 快速操作卡片组件 */
@@ -464,24 +528,24 @@ fun QuickActionCard(
         onClick: () -> Unit
 ) {
         Card(
-                modifier = modifier
-                        .shadow(
-                                elevation = 10.dp,
-                                shape = RoundedCornerShape(20.dp),
-                                ambientColor = gradientColors.first().copy(alpha = 0.2f),
-                                spotColor = gradientColors.first().copy(alpha = 0.3f)
-                        )
-                        .clickable(onClick = onClick),
+                modifier =
+                        modifier.shadow(
+                                        elevation = 10.dp,
+                                        shape = RoundedCornerShape(20.dp),
+                                        ambientColor = gradientColors.first().copy(alpha = 0.2f),
+                                        spotColor = gradientColors.first().copy(alpha = 0.3f)
+                                )
+                                .clickable(onClick = onClick),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                         Box(
-                                modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(Brush.linearGradient(gradientColors)),
+                                modifier =
+                                        Modifier.size(50.dp)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(Brush.linearGradient(gradientColors)),
                                 contentAlignment = Alignment.Center
                         ) {
                                 Icon(
@@ -501,11 +565,7 @@ fun QuickActionCard(
                                 color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                                text = subtitle,
-                                fontSize = 12.sp,
-                                color = TextSecondary
-                        )
+                        Text(text = subtitle, fontSize = 12.sp, color = TextSecondary)
                 }
         }
 }
@@ -521,10 +581,10 @@ fun NutritionProgressBar(label: String, progress: Float, color: Color) {
                 ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                        modifier = Modifier
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(color)
+                                        modifier =
+                                                Modifier.size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(color)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
@@ -546,10 +606,8 @@ fun NutritionProgressBar(label: String, progress: Float, color: Color) {
 
                 LinearProgressIndicator(
                         progress = { progress },
-                        modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
+                        modifier =
+                                Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                         color = color,
                         trackColor = color.copy(alpha = 0.15f)
                 )
@@ -560,29 +618,27 @@ fun NutritionProgressBar(label: String, progress: Float, color: Color) {
 @Composable
 fun HomeTripCard(trip: com.example.lifehub.data.TripSummary, onClick: () -> Unit) {
         Card(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                                elevation = 12.dp,
-                                shape = RoundedCornerShape(20.dp),
-                                ambientColor = ForestGreen.copy(alpha = 0.3f),
-                                spotColor = ForestGreen.copy(alpha = 0.4f)
-                        )
-                        .clickable(onClick = onClick),
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .shadow(
+                                        elevation = 12.dp,
+                                        shape = RoundedCornerShape(20.dp),
+                                        ambientColor = ForestGreen.copy(alpha = 0.3f),
+                                        spotColor = ForestGreen.copy(alpha = 0.4f)
+                                )
+                                .clickable(onClick = onClick),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent)
         ) {
                 Box(
-                        modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                        Brush.linearGradient(
-                                                colors = listOf(
-                                                        ForestGreen,
-                                                        ForestGreenDark
+                        modifier =
+                                Modifier.fillMaxWidth()
+                                        .background(
+                                                Brush.linearGradient(
+                                                        colors =
+                                                                listOf(ForestGreen, ForestGreenDark)
                                                 )
                                         )
-                                )
                 ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                                 Row(
@@ -599,12 +655,13 @@ fun HomeTripCard(trip: com.example.lifehub.data.TripSummary, onClick: () -> Unit
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                        text = "${trip.startDate} - ${trip.endDate}",
+                                                        text =
+                                                                "${trip.startDate} - ${trip.endDate}",
                                                         fontSize = 13.sp,
                                                         color = Color.White.copy(alpha = 0.85f)
                                                 )
                                         }
-                                        
+
                                         // 计算天数
                                         val days = calculateDays(trip.startDate, trip.endDate)
                                         if (days > 0) {
@@ -617,7 +674,11 @@ fun HomeTripCard(trip: com.example.lifehub.data.TripSummary, onClick: () -> Unit
                                                                 fontSize = 12.sp,
                                                                 fontWeight = FontWeight.Medium,
                                                                 color = Color.White,
-                                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                                                modifier =
+                                                                        Modifier.padding(
+                                                                                horizontal = 12.dp,
+                                                                                vertical = 6.dp
+                                                                        )
                                                         )
                                                 }
                                         }
@@ -629,7 +690,10 @@ fun HomeTripCard(trip: com.example.lifehub.data.TripSummary, onClick: () -> Unit
                                         trip.destination?.let {
                                                 TripInfoChip(Icons.Default.Place, it)
                                         }
-                                        TripInfoChip(Icons.Default.FitnessCenter, "${trip.itemCount}个节点")
+                                        TripInfoChip(
+                                                Icons.Default.FitnessCenter,
+                                                "${trip.itemCount}个节点"
+                                        )
                                 }
                         }
                 }
@@ -640,29 +704,30 @@ fun HomeTripCard(trip: com.example.lifehub.data.TripSummary, onClick: () -> Unit
 @Composable
 fun HomeTripCardSmall(trip: com.example.lifehub.data.TripSummary, onClick: () -> Unit) {
         Card(
-                modifier = Modifier
-                        .width(180.dp)
-                        .shadow(
-                                elevation = 8.dp,
-                                shape = RoundedCornerShape(16.dp),
-                                ambientColor = ForestGreen.copy(alpha = 0.2f)
-                        )
-                        .clickable(onClick = onClick),
+                modifier =
+                        Modifier.width(180.dp)
+                                .shadow(
+                                        elevation = 8.dp,
+                                        shape = RoundedCornerShape(16.dp),
+                                        ambientColor = ForestGreen.copy(alpha = 0.2f)
+                                )
+                                .clickable(onClick = onClick),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent)
         ) {
                 Box(
-                        modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                        Brush.linearGradient(
-                                                colors = listOf(
-                                                        ForestGreenLight,
-                                                        ForestGreen
+                        modifier =
+                                Modifier.fillMaxWidth()
+                                        .background(
+                                                Brush.linearGradient(
+                                                        colors =
+                                                                listOf(
+                                                                        ForestGreenLight,
+                                                                        ForestGreen
+                                                                )
                                                 )
                                         )
-                                )
-                                .padding(14.dp)
+                                        .padding(14.dp)
                 ) {
                         Column {
                                 Text(
@@ -687,33 +752,43 @@ fun HomeTripCardSmall(trip: com.example.lifehub.data.TripSummary, onClick: () ->
 @Composable
 fun EmptyTripCard(onClick: () -> Unit) {
         Card(
-                modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                                elevation = 6.dp,
-                                shape = RoundedCornerShape(20.dp),
-                                ambientColor = ForestGreen.copy(alpha = 0.1f)
-                        )
-                        .clickable(onClick = onClick),
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .shadow(
+                                        elevation = 6.dp,
+                                        shape = RoundedCornerShape(20.dp),
+                                        ambientColor = ForestGreen.copy(alpha = 0.1f)
+                                )
+                                .clickable(onClick = onClick),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
                 Column(
-                        modifier = Modifier.padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier =
+                                Modifier.fillMaxWidth()
+                                        .padding(vertical = 48.dp, horizontal = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                 ) {
                         Box(
-                                modifier = Modifier
-                                        .size(64.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                                Brush.linearGradient(
-                                                        colors = listOf(
-                                                                ForestGreenLight.copy(alpha = 0.4f),
-                                                                ForestGreen.copy(alpha = 0.3f)
+                                modifier =
+                                        Modifier.size(64.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                        Brush.linearGradient(
+                                                                colors =
+                                                                        listOf(
+                                                                                ForestGreenLight
+                                                                                        .copy(
+                                                                                                alpha =
+                                                                                                        0.4f
+                                                                                        ),
+                                                                                ForestGreen.copy(
+                                                                                        alpha = 0.3f
+                                                                                )
+                                                                        )
                                                         )
-                                                )
-                                        ),
+                                                ),
                                 contentAlignment = Alignment.Center
                         ) {
                                 Icon(
@@ -755,10 +830,7 @@ fun calculateDays(startDate: String, endDate: String): Int {
 /** 行程信息标签组件 */
 @Composable
 fun TripInfoChip(icon: ImageVector, text: String) {
-        Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color.White.copy(alpha = 0.15f)
-        ) {
+        Surface(shape = RoundedCornerShape(8.dp), color = Color.White.copy(alpha = 0.15f)) {
                 Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp),

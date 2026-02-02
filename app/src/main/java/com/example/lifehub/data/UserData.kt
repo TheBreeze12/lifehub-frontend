@@ -116,3 +116,8 @@ data class UserPreferencesData(
         @SerializedName("dailyBudget") val dailyBudget: Int?
 )
 
+// UserRegistrationRequest.kt
+data class UserRegistrationRequest(val nickname: String, val password: String)
+
+// UserRegistrationResponse.kt
+data class UserRegistrationResponse(val code: Int, val message: String, val userId: Int?)

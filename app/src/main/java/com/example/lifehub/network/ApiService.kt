@@ -140,7 +140,6 @@ interface ApiService {
          * @param date 日期（YYYY-MM-DD格式，可选）
          * @return 饮食历史数据
          */
-
         suspend fun getDietHistory(
                 @Query("userId") userId: Int,
                 @Query("date") date: String? = null
@@ -148,7 +147,27 @@ interface ApiService {
 
         @GET("/api/user/data")
         suspend fun getUserData(
-            @Query("userId") userId: Int,
-            @Query("password") password: String? = null
-        ):UserPreferencesResponse
+                @Query("nickname") nickname: String? = null,
+                @Query("password") password: String? = null
+        ): UserPreferencesResponse
+
+    /**
+     * 用户注册 POST /api/user/register
+     * @param request 注册请求（昵称和密码）
+     * @return 注册响应（包含用户ID）
+     */
+    @POST("/api/user/register")
+    suspend fun registerUser(@Body request: UserRegistrationRequest): UserRegistrationResponse
+
+                // ==================== 天气服务 ====================
+
+                /**
+                 * 根据计划ID查询天气 GET /api/weather/by-plan
+                 * @param planId 行程计划ID
+                 * @return 天气数据
+                 */
+                @GET("/api/weather/by-plan")
+                suspend fun getWeatherByPlan(@Query("planId") planId: Int): WeatherResponse
 }
+
+

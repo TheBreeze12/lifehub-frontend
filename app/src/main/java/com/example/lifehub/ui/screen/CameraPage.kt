@@ -153,8 +153,8 @@ fun CameraPage(navController: NavController) {
                                         Modifier.size(280.dp, 200.dp)
                                                 .border(
                                                         width = 2.dp,
-                                                        color = Color.White.copy(alpha = 0.6f),
-                                                        shape = RoundedCornerShape(8.dp)
+                                                        color = Color.White.copy(alpha = 0.7f),
+                                                        shape = RoundedCornerShape(12.dp)
                                                 )
                         ) {
                                 CornerMarker(Alignment.TopStart)
@@ -168,7 +168,7 @@ fun CameraPage(navController: NavController) {
                                 text = "将菜单置于框内",
                                 color = Color.White.copy(alpha = 0.8f),
                                 fontSize = 14.sp,
-                                modifier = Modifier.align(Alignment.Center).offset(y = 120.dp)
+                                modifier = Modifier.align(Alignment.Center).offset(y = 75.dp)
                         )
 
                         // 拍照按钮
@@ -176,7 +176,7 @@ fun CameraPage(navController: NavController) {
                                 modifier =
                                         Modifier.align(Alignment.BottomCenter)
                                                 .padding(bottom = 40.dp)
-                                                .size(70.dp)
+                                                .size(75.dp)
                                                 .border(4.dp, Color.White, CircleShape)
                                                 .padding(4.dp)
                                                 .clip(CircleShape)
@@ -202,7 +202,7 @@ fun CameraPage(navController: NavController) {
                 // 识别结果区域
                 Surface(
                         modifier = Modifier.fillMaxSize(),
-                        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                         color = Color.White
                 ) {
                         Column(modifier = Modifier.padding(24.dp)) {
@@ -229,7 +229,7 @@ fun CameraPage(navController: NavController) {
                                         }
                                 }
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
                                 // 根据识别状态显示不同内容
                                 // 如果没有用户，不显示任何识别结果
@@ -282,7 +282,7 @@ fun CameraPage(navController: NavController) {
                                                 if (userId != null && state.dishes.isNotEmpty()) {
                                                         LazyColumn(
                                                                 verticalArrangement =
-                                                                        Arrangement.spacedBy(12.dp)
+                                                                        Arrangement.spacedBy(10.dp)
                                                         ) {
                                                                 items(state.dishes) { dish ->
                                                                         DishItemCard(
@@ -716,7 +716,7 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
                 }
         Surface(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = Color(0xFFF9FAFB),
                 tonalElevation = 1.dp
         ) {
