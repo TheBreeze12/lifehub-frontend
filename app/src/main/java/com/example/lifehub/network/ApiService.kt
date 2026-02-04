@@ -2,6 +2,7 @@ package com.example.lifehub.network
 
 import com.example.lifehub.data.*
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 
 /** API服务接口定义 - MVP版本完整接口 */
@@ -192,6 +193,34 @@ interface ApiService {
                  */
                 @GET("/api/weather/by-plan")
                 suspend fun getWeatherByPlan(@Query("planId") planId: Int): WeatherResponse
+
+        // ==================== 餐前餐后对比服务 ====================
+
+        /**
+         * 上传餐前图片 POST /api/food/meal/before
+         * @param image 餐前食物图片
+         * @param userId 用户ID
+         * @return 餐前分析结果，包含comparison_id
+         */
+        @Multipart
+        @POST("/api/food/meal/before")
+        suspend fun uploadBeforeMealImage(
+                @Part image: MultipartBody.Part,
+                @Part("user_id") userId: okhttp3.RequestBody
+        ): BeforeMealResponse
+
+        /**
+         * 上传餐后图片并计算净摄入 POST /api/food/meal/after/{comparison_id}
+         * @param comparisonId 对比记录ID（餐前上传时返回）
+         * @param image 餐后食物图片
+         * @return 对比结果，包含净摄入热量
+         */
+        @Multipart
+        @POST("/api/food/meal/after/{comparison_id}")
+        suspend fun uploadAfterMealImage(
+                @Path("comparison_id") comparisonId: Int,
+                @Part image: MultipartBody.Part
+        ): AfterMealResponse
 }
 
 

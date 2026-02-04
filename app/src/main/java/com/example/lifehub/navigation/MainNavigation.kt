@@ -136,6 +136,15 @@ fun MainNavigation() {
                         }
                 )
             }
+
+            // Phase 13: 餐前餐后对比功能
+            composable(Screen.MealComparison.route) {
+                MealComparisonPage(navController = navController)
+            }
+
+            composable(Screen.BeforeMealCamera.route) {
+                BeforeMealCameraPage(navController = navController)
+            }
         }
     }
 }

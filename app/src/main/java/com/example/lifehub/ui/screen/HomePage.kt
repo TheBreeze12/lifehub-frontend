@@ -239,6 +239,18 @@ fun HomePage(
                                 )
                         }
 
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // 餐前餐后对比入口卡片 (Phase 13)
+                        QuickActionCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                icon = Icons.Default.CompareArrows,
+                                title = "餐前餐后对比",
+                                subtitle = "精准计算实际摄入量",
+                                gradientColors = listOf(LavenderPurple, SkyBlueLight),
+                                onClick = { navController.navigate(Screen.MealComparison.route) }
+                        )
+
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // 今日饮食卡片

@@ -18,4 +18,8 @@ sealed class Screen(val route: String) {
 
     object TodayDietRecords : Screen("today_diet_records")
     object AllDietRecords : Screen("all_diet_records")
+
+    // Phase 13: 餐前餐后对比功能
+    object MealComparison : Screen("meal_comparison")
+    object BeforeMealCamera : Screen("before_meal_camera")
 }

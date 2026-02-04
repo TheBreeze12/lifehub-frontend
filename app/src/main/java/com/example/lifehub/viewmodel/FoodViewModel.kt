@@ -4,10 +4,13 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifehub.data.AddDietRecordRequest
+import com.example.lifehub.data.AfterMealData
+import com.example.lifehub.data.BeforeMealData
 import com.example.lifehub.data.DietRecord
 import com.example.lifehub.data.DishItem
 import com.example.lifehub.data.FoodData
 import com.example.lifehub.data.FoodRequest
+import com.example.lifehub.data.MealComparisonRecord
 import com.example.lifehub.data.UpdateDietRecordRequest
 import com.example.lifehub.network.RetrofitClient
 import java.io.File
@@ -72,6 +75,22 @@ sealed class DeleteDietRecordState {
     data class Error(val message: String) : DeleteDietRecordState()
 }
 
+/** 餐前图片上传UI状态 */
+sealed class BeforeMealUploadState {
+    object Idle : BeforeMealUploadState()
+    object Loading : BeforeMealUploadState()
+    data class Success(val data: BeforeMealData) : BeforeMealUploadState()
+    data class Error(val message: String) : BeforeMealUploadState()
+}
+
+/** 餐后图片上传UI状态 */
+sealed class AfterMealUploadState {
+    object Idle : AfterMealUploadState()
+    object Loading : AfterMealUploadState()
+    data class Success(val data: AfterMealData) : AfterMealUploadState()
+    data class Error(val message: String) : AfterMealUploadState()
+}
+
 /** 菜品查询ViewModel */
 class FoodViewModel : ViewModel() {
 
@@ -96,6 +115,15 @@ class FoodViewModel : ViewModel() {
 
     private val _deleteDietRecordState = MutableStateFlow<DeleteDietRecordState>(DeleteDietRecordState.Idle)
     val deleteDietRecordState: StateFlow<DeleteDietRecordState> = _deleteDietRecordState.asStateFlow()
+
+    private val _beforeMealUploadState = MutableStateFlow<BeforeMealUploadState>(BeforeMealUploadState.Idle)
+    val beforeMealUploadState: StateFlow<BeforeMealUploadState> = _beforeMealUploadState.asStateFlow()
+
+    private val _afterMealUploadState = MutableStateFlow<AfterMealUploadState>(AfterMealUploadState.Idle)
+    val afterMealUploadState: StateFlow<AfterMealUploadState> = _afterMealUploadState.asStateFlow()
+
+    private val _currentComparisonRecord = MutableStateFlow<MealComparisonRecord?>(null)
+    val currentComparisonRecord: StateFlow<MealComparisonRecord?> = _currentComparisonRecord.asStateFlow()
 
     /**
      * 分析菜品营养成分
@@ -483,5 +511,120 @@ class FoodViewModel : ViewModel() {
     /** 重置删除记录状态 */
     fun resetDeleteDietRecordState() {
         _deleteDietRecordState.value = DeleteDietRecordState.Idle
+    }
+
+    // ==================== 餐前餐后对比功能 ====================
+
+    /**
+     * 上传餐前图片
+     * @param imageUri 图片URI
+     * @param context Android Context（用于读取文件）
+     * @param userId 用户ID
+     */
+    fun uploadBeforeMealImage(imageUri: Uri, context: android.content.Context, userId: Int) {
+        viewModelScope.launch {
+            _beforeMealUploadState.value = BeforeMealUploadState.Loading
+
+            try {
+                val imagePart = createImagePart(imageUri, context)
+                        ?: run {
+                            _beforeMealUploadState.value = BeforeMealUploadState.Error("无法读取图片文件")
+                            return@launch
+                        }
+
+                val userIdBody = userId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val response = RetrofitClient.apiService.uploadBeforeMealImage(imagePart, userIdBody)
+
+                if (response.code == 200 && response.data != null) {
+                    _beforeMealUploadState.value = BeforeMealUploadState.Success(response.data)
+                    // 保存当前对比记录
+                    _currentComparisonRecord.value = MealComparisonRecord(
+                            comparisonId = response.data.comparisonId,
+                            beforeImageUrl = response.data.beforeImageUrl,
+                            beforeFeatures = response.data.beforeFeatures,
+                            originalCalories = response.data.beforeFeatures?.totalEstimatedCalories,
+                            status = response.data.status ?: "pending_after"
+                    )
+                } else {
+                    _beforeMealUploadState.value = BeforeMealUploadState.Error(
+                            response.message ?: "餐前图片上传失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _beforeMealUploadState.value = BeforeMealUploadState.Error(
+                        when {
+                            e.message?.contains("Unable to resolve host") == true ->
+                                    "网络连接失败，请检查后端服务是否启动"
+                            e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                            else -> "上传失败：${e.message ?: "未知错误"}"
+                        }
+                )
+            }
+        }
+    }
+
+    /**
+     * 上传餐后图片并计算净摄入
+     * @param imageUri 图片URI
+     * @param context Android Context（用于读取文件）
+     * @param comparisonId 对比记录ID（餐前上传时返回）
+     */
+    fun uploadAfterMealImage(imageUri: Uri, context: android.content.Context, comparisonId: Int) {
+        viewModelScope.launch {
+            _afterMealUploadState.value = AfterMealUploadState.Loading
+
+            try {
+                val imagePart = createImagePart(imageUri, context)
+                        ?: run {
+                            _afterMealUploadState.value = AfterMealUploadState.Error("无法读取图片文件")
+                            return@launch
+                        }
+
+                val response = RetrofitClient.apiService.uploadAfterMealImage(comparisonId, imagePart)
+
+                if (response.code == 200 && response.data != null) {
+                    _afterMealUploadState.value = AfterMealUploadState.Success(response.data)
+                    // 更新当前对比记录
+                    _currentComparisonRecord.value = _currentComparisonRecord.value?.copy(
+                            afterImageUrl = response.data.afterImageUrl,
+                            consumptionRatio = response.data.consumptionRatio,
+                            netCalories = response.data.netCalories,
+                            status = response.data.status ?: "completed"
+                    )
+                } else {
+                    _afterMealUploadState.value = AfterMealUploadState.Error(
+                            response.message ?: "餐后图片上传失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _afterMealUploadState.value = AfterMealUploadState.Error(
+                        when {
+                            e.message?.contains("Unable to resolve host") == true ->
+                                    "网络连接失败，请检查后端服务是否启动"
+                            e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                            e.message?.contains("404") == true -> "对比记录不存在"
+                            e.message?.contains("400") == true -> "该对比记录已完成或状态异常"
+                            else -> "上传失败：${e.message ?: "未知错误"}"
+                        }
+                )
+            }
+        }
+    }
+
+    /** 重置餐前上传状态 */
+    fun resetBeforeMealUploadState() {
+        _beforeMealUploadState.value = BeforeMealUploadState.Idle
+    }
+
+    /** 重置餐后上传状态 */
+    fun resetAfterMealUploadState() {
+        _afterMealUploadState.value = AfterMealUploadState.Idle
+    }
+
+    /** 重置所有餐前餐后对比状态 */
+    fun resetMealComparisonState() {
+        _beforeMealUploadState.value = BeforeMealUploadState.Idle
+        _afterMealUploadState.value = AfterMealUploadState.Idle
+        _currentComparisonRecord.value = null
     }
 }
