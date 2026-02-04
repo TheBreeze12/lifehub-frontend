@@ -25,7 +25,11 @@ data class UpdatePreferencesRequest(
         @SerializedName("healthGoal") val healthGoal: String?,
         @SerializedName("allergens") val allergens: List<String>?,
         @SerializedName("travelPreference") val travelPreference: String?,
-        @SerializedName("dailyBudget") val dailyBudget: Int?
+        @SerializedName("dailyBudget") val dailyBudget: Int?,
+        @SerializedName("weight") val weight: Double? = null,
+        @SerializedName("height") val height: Double? = null,
+        @SerializedName("age") val age: Int? = null,
+        @SerializedName("gender") val gender: String? = null
 )
 
 /** 饮食记录数据模型 */
@@ -143,7 +147,11 @@ data class UserPreferencesData(
         @SerializedName("healthGoal") val healthGoal: String?,
         @SerializedName("allergens") val allergens: List<String>?,
         @SerializedName("travelPreference") val travelPreference: String?,
-        @SerializedName("dailyBudget") val dailyBudget: Int?
+        @SerializedName("dailyBudget") val dailyBudget: Int?,
+        @SerializedName("weight") val weight: Double? = null,
+        @SerializedName("height") val height: Double? = null,
+        @SerializedName("age") val age: Int? = null,
+        @SerializedName("gender") val gender: String? = null
 )
 
 // UserRegistrationRequest.kt

@@ -231,6 +231,64 @@ fun ProfilePage(
             item {
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // 身体参数设置
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                    Text(
+                            text = "身体参数",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    when (val state = preferencesState) {
+                        is com.example.lifehub.viewmodel.UserPreferencesState.Success -> {
+                            BodyParamsSection(
+                                    weight = state.data.weight,
+                                    height = state.data.height,
+                                    age = state.data.age,
+                                    gender = state.data.gender,
+                                    onUpdate = { newWeight, newHeight, newAge, newGender ->
+                                        userId.value?.let {
+                                            viewModel.updateBodyParams(
+                                                    userId = it,
+                                                    weight = newWeight,
+                                                    height = newHeight,
+                                                    age = newAge,
+                                                    gender = newGender
+                                            )
+                                        }
+                                    }
+                            )
+                        }
+                        else -> {
+                            BodyParamsSection(
+                                    weight = null,
+                                    height = null,
+                                    age = null,
+                                    gender = null,
+                                    onUpdate = { newWeight, newHeight, newAge, newGender ->
+                                        userId.value?.let {
+                                            viewModel.updateBodyParams(
+                                                    userId = it,
+                                                    weight = newWeight,
+                                                    height = newHeight,
+                                                    age = newAge,
+                                                    gender = newGender
+                                            )
+                                        }
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+
                 // 退出登录按钮
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     Button(
@@ -787,6 +845,309 @@ private fun getTravelPreferenceDisplayName(preference: String?): String {
         "self_driving" -> "自驾"
         "public_transport" -> "公共交通"
         "walking" -> "步行"
+        else -> "未设置"
+    }
+}
+
+@Composable
+private fun BodyParamsSection(
+        weight: Double?,
+        height: Double?,
+        age: Int?,
+        gender: String?,
+        onUpdate: (Double?, Double?, Int?, String?) -> Unit
+) {
+    var showWeightDialog by remember { mutableStateOf(false) }
+    var showHeightDialog by remember { mutableStateOf(false) }
+    var showAgeDialog by remember { mutableStateOf(false) }
+    var showGenderDialog by remember { mutableStateOf(false) }
+
+    var currentWeight by remember { mutableStateOf(weight) }
+    var currentHeight by remember { mutableStateOf(height) }
+    var currentAge by remember { mutableStateOf(age) }
+    var currentGender by remember { mutableStateOf(gender) }
+
+    // 同步外部数据
+    LaunchedEffect(weight, height, age, gender) {
+        currentWeight = weight
+        currentHeight = height
+        currentAge = age
+        currentGender = gender
+    }
+
+    Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            SettingItem(
+                    icon = Icons.Default.FitnessCenter,
+                    iconTint = Color(0xFF10B981),
+                    title = "体重",
+                    value = if (currentWeight != null) "${currentWeight}kg" else "未设置",
+                    onClick = { showWeightDialog = true }
+            )
+
+            CustomDivider(color = Color(0xFFF9FAFB))
+
+            SettingItem(
+                    icon = Icons.Default.Straighten,
+                    iconTint = Color(0xFF6366F1),
+                    title = "身高",
+                    value = if (currentHeight != null) "${currentHeight}cm" else "未设置",
+                    onClick = { showHeightDialog = true }
+            )
+
+            CustomDivider(color = Color(0xFFF9FAFB))
+
+            SettingItem(
+                    icon = Icons.Default.DateRange,
+                    iconTint = Color(0xFFF59E0B),
+                    title = "年龄",
+                    value = if (currentAge != null) "${currentAge}岁" else "未设置",
+                    onClick = { showAgeDialog = true }
+            )
+
+            CustomDivider(color = Color(0xFFF9FAFB))
+
+            SettingItem(
+                    icon = Icons.Default.Face,
+                    iconTint = Color(0xFFEC4899),
+                    title = "性别",
+                    value = getGenderDisplayName(currentGender),
+                    onClick = { showGenderDialog = true }
+            )
+        }
+    }
+
+    // 体重设置对话框
+    if (showWeightDialog) {
+        WeightDialog(
+                currentWeight = currentWeight,
+                onDismiss = { showWeightDialog = false },
+                onConfirm = { newWeight ->
+                    currentWeight = newWeight
+                    showWeightDialog = false
+                    onUpdate(newWeight, currentHeight, currentAge, currentGender)
+                }
+        )
+    }
+
+    // 身高设置对话框
+    if (showHeightDialog) {
+        HeightDialog(
+                currentHeight = currentHeight,
+                onDismiss = { showHeightDialog = false },
+                onConfirm = { newHeight ->
+                    currentHeight = newHeight
+                    showHeightDialog = false
+                    onUpdate(currentWeight, newHeight, currentAge, currentGender)
+                }
+        )
+    }
+
+    // 年龄设置对话框
+    if (showAgeDialog) {
+        AgeDialog(
+                currentAge = currentAge,
+                onDismiss = { showAgeDialog = false },
+                onConfirm = { newAge ->
+                    currentAge = newAge
+                    showAgeDialog = false
+                    onUpdate(currentWeight, currentHeight, newAge, currentGender)
+                }
+        )
+    }
+
+    // 性别设置对话框
+    if (showGenderDialog) {
+        GenderDialog(
+                currentGender = currentGender,
+                onDismiss = { showGenderDialog = false },
+                onConfirm = { newGender ->
+                    currentGender = newGender
+                    showGenderDialog = false
+                    onUpdate(currentWeight, currentHeight, currentAge, newGender)
+                }
+        )
+    }
+}
+
+@Composable
+private fun WeightDialog(
+        currentWeight: Double?,
+        onDismiss: () -> Unit,
+        onConfirm: (Double?) -> Unit
+) {
+    var weightText by remember { mutableStateOf(currentWeight?.toString() ?: "") }
+
+    AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("设置体重") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                            value = weightText,
+                            onValueChange = { weightText = it },
+                            label = { Text("体重（kg）") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                            text = "请输入有效的体重值（0.1-500kg）",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                        onClick = {
+                            val weight = weightText.toDoubleOrNull()
+                            if (weight != null && weight > 0 && weight <= 500) {
+                                onConfirm(weight)
+                            }
+                        }
+                ) { Text("确定") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
+
+@Composable
+private fun HeightDialog(
+        currentHeight: Double?,
+        onDismiss: () -> Unit,
+        onConfirm: (Double?) -> Unit
+) {
+    var heightText by remember { mutableStateOf(currentHeight?.toString() ?: "") }
+
+    AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("设置身高") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                            value = heightText,
+                            onValueChange = { heightText = it },
+                            label = { Text("身高（cm）") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                            text = "请输入有效的身高值（50-300cm）",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                        onClick = {
+                            val height = heightText.toDoubleOrNull()
+                            if (height != null && height > 0 && height <= 300) {
+                                onConfirm(height)
+                            }
+                        }
+                ) { Text("确定") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
+
+@Composable
+private fun AgeDialog(
+        currentAge: Int?,
+        onDismiss: () -> Unit,
+        onConfirm: (Int?) -> Unit
+) {
+    var ageText by remember { mutableStateOf(currentAge?.toString() ?: "") }
+
+    AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("设置年龄") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                            value = ageText,
+                            onValueChange = { ageText = it },
+                            label = { Text("年龄") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                            text = "请输入有效的年龄值（1-150岁）",
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                        onClick = {
+                            val age = ageText.toIntOrNull()
+                            if (age != null && age > 0 && age <= 150) {
+                                onConfirm(age)
+                            }
+                        }
+                ) { Text("确定") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
+
+@Composable
+private fun GenderDialog(
+        currentGender: String?,
+        onDismiss: () -> Unit,
+        onConfirm: (String) -> Unit
+) {
+    val genders = listOf(
+            "male" to "男",
+            "female" to "女",
+            "other" to "其他"
+    )
+
+    AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("选择性别") },
+            text = {
+                Column {
+                    genders.forEach { (value, label) ->
+                        Row(
+                                modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onConfirm(value) }
+                                        .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                    selected = currentGender == value,
+                                    onClick = { onConfirm(value) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(label)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
+
+private fun getGenderDisplayName(gender: String?): String {
+    return when (gender) {
+        "male" -> "男"
+        "female" -> "女"
+        "other" -> "其他"
         else -> "未设置"
     }
 }

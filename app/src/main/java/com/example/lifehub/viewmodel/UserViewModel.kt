@@ -43,7 +43,11 @@ class UserViewModel : ViewModel() {
             healthGoal: String? = null,
             allergens: List<String>? = null,
             travelPreference: String? = null,
-            dailyBudget: Int? = null
+            dailyBudget: Int? = null,
+            weight: Double? = null,
+            height: Double? = null,
+            age: Int? = null,
+            gender: String? = null
     ) {
         viewModelScope.launch {
             _updatePreferencesState.value = UpdatePreferencesState.Loading
@@ -56,7 +60,11 @@ class UserViewModel : ViewModel() {
                                         healthGoal = healthGoal,
                                         allergens = allergens,
                                         travelPreference = travelPreference,
-                                        dailyBudget = dailyBudget
+                                        dailyBudget = dailyBudget,
+                                        weight = weight,
+                                        height = height,
+                                        age = age,
+                                        gender = gender
                                 )
                         )
 
@@ -164,7 +172,11 @@ class UserViewModel : ViewModel() {
             healthGoal: String? = null,
             allergens: List<String>? = null,
             travelPreference: String? = null,
-            dailyBudget: Int? = null
+            dailyBudget: Int? = null,
+            weight: Double? = null,
+            height: Double? = null,
+            age: Int? = null,
+            gender: String? = null
     ) {
         viewModelScope.launch {
             _updatePreferencesState.value = UpdatePreferencesState.Loading
@@ -177,13 +189,59 @@ class UserViewModel : ViewModel() {
                                         healthGoal = healthGoal,
                                         allergens = allergens,
                                         travelPreference = travelPreference,
-                                        dailyBudget = dailyBudget
+                                        dailyBudget = dailyBudget,
+                                        weight = weight,
+                                        height = height,
+                                        age = age,
+                                        gender = gender
                                 )
                         )
 
                 if (response.code == 200) {
                     _updatePreferencesState.value = UpdatePreferencesState.Success
                     // 更新后重新获取用户偏好
+                    if (response.data != null) {
+                        _userPreferencesState.value = UserPreferencesState.Success(response.data)
+                    }
+                } else {
+                    _updatePreferencesState.value =
+                            UpdatePreferencesState.Error(response.message ?: "更新失败")
+                }
+            } catch (e: Exception) {
+                _updatePreferencesState.value = UpdatePreferencesState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
+    /** 更新身体参数（体重、身高、年龄、性别） */
+    fun updateBodyParams(
+            userId: Int,
+            weight: Double? = null,
+            height: Double? = null,
+            age: Int? = null,
+            gender: String? = null
+    ) {
+        viewModelScope.launch {
+            _updatePreferencesState.value = UpdatePreferencesState.Loading
+
+            try {
+                val response =
+                        apiService.updateUserPreferences(
+                                UpdatePreferencesRequest(
+                                        userId = userId,
+                                        healthGoal = null,
+                                        allergens = null,
+                                        travelPreference = null,
+                                        dailyBudget = null,
+                                        weight = weight,
+                                        height = height,
+                                        age = age,
+                                        gender = gender
+                                )
+                        )
+
+                if (response.code == 200) {
+                    _updatePreferencesState.value = UpdatePreferencesState.Success
                     if (response.data != null) {
                         _userPreferencesState.value = UserPreferencesState.Success(response.data)
                     }
