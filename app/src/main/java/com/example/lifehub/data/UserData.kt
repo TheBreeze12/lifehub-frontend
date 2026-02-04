@@ -54,6 +54,36 @@ data class AddDietRecordRequest(
         @SerializedName("recordDate") val recordDate: String
 )
 
+/** 更新饮食记录请求 */
+data class UpdateDietRecordRequest(
+        @SerializedName("userId") val userId: Int,
+        @SerializedName("foodName") val foodName: String? = null,
+        @SerializedName("calories") val calories: Double? = null,
+        @SerializedName("protein") val protein: Double? = null,
+        @SerializedName("fat") val fat: Double? = null,
+        @SerializedName("carbs") val carbs: Double? = null,
+        @SerializedName("mealType") val mealType: String? = null,
+        @SerializedName("recordDate") val recordDate: String? = null
+)
+
+/** 更新饮食记录响应 */
+data class UpdateDietRecordResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: DietRecordData?
+)
+
+data class DietRecordData(
+        @SerializedName("id") val id: Int,
+        @SerializedName("foodName") val foodName: String,
+        @SerializedName("calories") val calories: Double,
+        @SerializedName("protein") val protein: Double,
+        @SerializedName("fat") val fat: Double,
+        @SerializedName("carbs") val carbs: Double,
+        @SerializedName("mealType") val mealType: String,
+        @SerializedName("recordDate") val recordDate: String
+)
+
 /** 饮食历史响应 */
 data class DietHistoryResponse(
         @SerializedName("code") val code: Int,

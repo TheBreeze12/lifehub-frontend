@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,9 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.lifehub.data.DietRecord
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.ui.theme.*
+import com.example.lifehub.viewmodel.DeleteDietRecordState
 import com.example.lifehub.viewmodel.FoodViewModel
+import com.example.lifehub.viewmodel.UpdateDietRecordState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -45,9 +51,38 @@ fun AllDietRecordsPage(navController: NavController, foodViewModel: FoodViewMode
             }
 
     val dietRecordsState by foodViewModel.dietRecordsState.collectAsState()
+    val updateDietRecordState by foodViewModel.updateDietRecordState.collectAsState()
+    val deleteDietRecordState by foodViewModel.deleteDietRecordState.collectAsState()
+
+    // 编辑对话框状态
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editingRecord by remember { mutableStateOf<DietRecord?>(null) }
+
+    // 删除确认对话框状态
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deletingRecord by remember { mutableStateOf<DietRecord?>(null) }
 
     // 加载所有饮食记录
     LaunchedEffect(userId) { userId?.let { foodViewModel.getDietRecords(it) } }
+
+    // 监听更新/删除状态，刷新列表
+    LaunchedEffect(updateDietRecordState) {
+        if (updateDietRecordState is UpdateDietRecordState.Success) {
+            showEditDialog = false
+            editingRecord = null
+            userId?.let { foodViewModel.getDietRecords(it) }
+            foodViewModel.resetUpdateDietRecordState()
+        }
+    }
+
+    LaunchedEffect(deleteDietRecordState) {
+        if (deleteDietRecordState is DeleteDietRecordState.Success) {
+            showDeleteDialog = false
+            deletingRecord = null
+            userId?.let { foodViewModel.getDietRecords(it) }
+            foodViewModel.resetDeleteDietRecordState()
+        }
+    }
 
     Box(
             modifier = Modifier
@@ -160,7 +195,19 @@ fun AllDietRecordsPage(navController: NavController, foodViewModel: FoodViewMode
                                             recordCount = entry.value.size
                                     )
                                 }
-                                items(entry.value) { record -> DietRecordCard(record = record) }
+                                items(entry.value) { record ->
+                                    DietRecordCard(
+                                            record = record,
+                                            onEditClick = {
+                                                editingRecord = record
+                                                showEditDialog = true
+                                            },
+                                            onDeleteClick = {
+                                                deletingRecord = record
+                                                showDeleteDialog = true
+                                            }
+                                    )
+                                }
                             }
                         }
                     }
@@ -196,6 +243,53 @@ fun AllDietRecordsPage(navController: NavController, foodViewModel: FoodViewMode
                     }
                 }
             }
+        }
+
+        // 编辑对话框
+        if (showEditDialog && editingRecord != null) {
+            EditDietRecordDialog(
+                    record = editingRecord!!,
+                    isLoading = updateDietRecordState is UpdateDietRecordState.Loading,
+                    errorMessage = (updateDietRecordState as? UpdateDietRecordState.Error)?.message,
+                    onDismiss = {
+                        showEditDialog = false
+                        editingRecord = null
+                        foodViewModel.resetUpdateDietRecordState()
+                    },
+                    onConfirm = { foodName, calories, protein, fat, carbs, mealType ->
+                        userId?.let { uid ->
+                            foodViewModel.updateDietRecord(
+                                    recordId = editingRecord!!.id,
+                                    userId = uid,
+                                    foodName = foodName,
+                                    calories = calories,
+                                    protein = protein,
+                                    fat = fat,
+                                    carbs = carbs,
+                                    mealType = mealType
+                            )
+                        }
+                    }
+            )
+        }
+
+        // 删除确认对话框
+        if (showDeleteDialog && deletingRecord != null) {
+            DeleteDietRecordDialog(
+                    record = deletingRecord!!,
+                    isLoading = deleteDietRecordState is DeleteDietRecordState.Loading,
+                    errorMessage = (deleteDietRecordState as? DeleteDietRecordState.Error)?.message,
+                    onDismiss = {
+                        showDeleteDialog = false
+                        deletingRecord = null
+                        foodViewModel.resetDeleteDietRecordState()
+                    },
+                    onConfirm = {
+                        userId?.let { uid ->
+                            foodViewModel.deleteDietRecord(deletingRecord!!.id, uid)
+                        }
+                    }
+            )
         }
     }
 }

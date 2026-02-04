@@ -8,6 +8,7 @@ import com.example.lifehub.data.DietRecord
 import com.example.lifehub.data.DishItem
 import com.example.lifehub.data.FoodData
 import com.example.lifehub.data.FoodRequest
+import com.example.lifehub.data.UpdateDietRecordRequest
 import com.example.lifehub.network.RetrofitClient
 import java.io.File
 import java.io.FileOutputStream
@@ -55,6 +56,22 @@ sealed class DietRecordsState {
     data class Error(val message: String) : DietRecordsState()
 }
 
+/** 更新饮食记录UI状态 */
+sealed class UpdateDietRecordState {
+    object Idle : UpdateDietRecordState()
+    object Loading : UpdateDietRecordState()
+    data class Success(val message: String) : UpdateDietRecordState()
+    data class Error(val message: String) : UpdateDietRecordState()
+}
+
+/** 删除饮食记录UI状态 */
+sealed class DeleteDietRecordState {
+    object Idle : DeleteDietRecordState()
+    object Loading : DeleteDietRecordState()
+    data class Success(val message: String) : DeleteDietRecordState()
+    data class Error(val message: String) : DeleteDietRecordState()
+}
+
 /** 菜品查询ViewModel */
 class FoodViewModel : ViewModel() {
 
@@ -73,6 +90,12 @@ class FoodViewModel : ViewModel() {
 
     private val _todayDietRecordsState = MutableStateFlow<DietRecordsState>(DietRecordsState.Idle)
     val todayDietRecordsState: StateFlow<DietRecordsState> = _todayDietRecordsState.asStateFlow()
+
+    private val _updateDietRecordState = MutableStateFlow<UpdateDietRecordState>(UpdateDietRecordState.Idle)
+    val updateDietRecordState: StateFlow<UpdateDietRecordState> = _updateDietRecordState.asStateFlow()
+
+    private val _deleteDietRecordState = MutableStateFlow<DeleteDietRecordState>(DeleteDietRecordState.Idle)
+    val deleteDietRecordState: StateFlow<DeleteDietRecordState> = _deleteDietRecordState.asStateFlow()
 
     /**
      * 分析菜品营养成分
@@ -352,5 +375,113 @@ class FoodViewModel : ViewModel() {
     /** 重置添加记录状态 */
     fun resetAddDietRecordState() {
         _addDietRecordState.value = AddDietRecordState.Idle
+    }
+
+    /**
+     * 更新饮食记录
+     * @param recordId 记录ID
+     * @param userId 用户ID
+     * @param foodName 菜品名称（可选）
+     * @param calories 热量（可选）
+     * @param protein 蛋白质（可选）
+     * @param fat 脂肪（可选）
+     * @param carbs 碳水化合物（可选）
+     * @param mealType 餐次（可选）
+     * @param recordDate 记录日期（可选）
+     */
+    fun updateDietRecord(
+            recordId: Int,
+            userId: Int,
+            foodName: String? = null,
+            calories: Double? = null,
+            protein: Double? = null,
+            fat: Double? = null,
+            carbs: Double? = null,
+            mealType: String? = null,
+            recordDate: String? = null
+    ) {
+        viewModelScope.launch {
+            _updateDietRecordState.value = UpdateDietRecordState.Loading
+
+            try {
+                val request = UpdateDietRecordRequest(
+                        userId = userId,
+                        foodName = foodName,
+                        calories = calories,
+                        protein = protein,
+                        fat = fat,
+                        carbs = carbs,
+                        mealType = mealType,
+                        recordDate = recordDate
+                )
+
+                val response = RetrofitClient.apiService.updateDietRecord(recordId, request)
+
+                if (response.code == 200) {
+                    _updateDietRecordState.value =
+                            UpdateDietRecordState.Success(response.message ?: "更新成功")
+                } else {
+                    _updateDietRecordState.value =
+                            UpdateDietRecordState.Error(response.message ?: "更新失败")
+                }
+            } catch (e: Exception) {
+                _updateDietRecordState.value =
+                        UpdateDietRecordState.Error(
+                                when {
+                                    e.message?.contains("Unable to resolve host") == true ->
+                                            "网络连接失败，请检查后端服务是否启动"
+                                    e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                                    e.message?.contains("403") == true -> "无权操作此记录"
+                                    e.message?.contains("404") == true -> "记录不存在"
+                                    else -> "更新失败：${e.message ?: "未知错误"}"
+                                }
+                        )
+            }
+        }
+    }
+
+    /**
+     * 删除饮食记录
+     * @param recordId 记录ID
+     * @param userId 用户ID
+     */
+    fun deleteDietRecord(recordId: Int, userId: Int) {
+        viewModelScope.launch {
+            _deleteDietRecordState.value = DeleteDietRecordState.Loading
+
+            try {
+                val response = RetrofitClient.apiService.deleteDietRecord(recordId, userId)
+
+                if (response.code == 200) {
+                    _deleteDietRecordState.value =
+                            DeleteDietRecordState.Success(response.message ?: "删除成功")
+                } else {
+                    _deleteDietRecordState.value =
+                            DeleteDietRecordState.Error(response.message ?: "删除失败")
+                }
+            } catch (e: Exception) {
+                _deleteDietRecordState.value =
+                        DeleteDietRecordState.Error(
+                                when {
+                                    e.message?.contains("Unable to resolve host") == true ->
+                                            "网络连接失败，请检查后端服务是否启动"
+                                    e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                                    e.message?.contains("403") == true -> "无权操作此记录"
+                                    e.message?.contains("404") == true -> "记录不存在"
+                                    else -> "删除失败：${e.message ?: "未知错误"}"
+                                }
+                        )
+            }
+        }
+    }
+
+    /** 重置更新记录状态 */
+    fun resetUpdateDietRecordState() {
+        _updateDietRecordState.value = UpdateDietRecordState.Idle
+    }
+
+    /** 重置删除记录状态 */
+    fun resetDeleteDietRecordState() {
+        _deleteDietRecordState.value = DeleteDietRecordState.Idle
     }
 }

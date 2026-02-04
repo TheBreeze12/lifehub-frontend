@@ -64,6 +64,30 @@ interface ApiService {
         @GET("/api/food/records/today")
         suspend fun getTodayDietRecords(@Query("userId") userId: Int): DietRecordsByDateResponse
 
+        /**
+         * 更新饮食记录 PUT /api/food/diet/{record_id}
+         * @param recordId 记录ID
+         * @param request 更新请求
+         * @return 更新后的记录
+         */
+        @PUT("/api/food/diet/{record_id}")
+        suspend fun updateDietRecord(
+                @Path("record_id") recordId: Int,
+                @Body request: UpdateDietRecordRequest
+        ): UpdateDietRecordResponse
+
+        /**
+         * 删除饮食记录 DELETE /api/food/diet/{record_id}
+         * @param recordId 记录ID
+         * @param userId 用户ID（权限校验）
+         * @return 删除结果
+         */
+        @DELETE("/api/food/diet/{record_id}")
+        suspend fun deleteDietRecord(
+                @Path("record_id") recordId: Int,
+                @Query("userId") userId: Int
+        ): ApiResponse
+
         // ==================== 行程规划服务 ====================
 
         /**
