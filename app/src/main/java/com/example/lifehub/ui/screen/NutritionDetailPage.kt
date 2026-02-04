@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -23,15 +26,26 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
+import com.example.lifehub.ui.components.AllergenHighlightSection
+import com.example.lifehub.ui.components.AllergenWarningDialog
+import com.example.lifehub.ui.components.matchUserAllergens
 import com.example.lifehub.ui.theme.ForestGreen
 import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.MenuRecognitionState
+import com.example.lifehub.viewmodel.UserPreferencesState
+import com.example.lifehub.viewmodel.UserViewModel
 
 /** 营养详情页面 展示单个菜品的详细营养成分和AI推荐理由 */
 @Composable
 fun NutritionDetailPage(dishName: String, navController: NavController) {
         val foodViewModel: FoodViewModel = viewModel()
+        val userViewModel: UserViewModel = viewModel()
         val recognitionState by foodViewModel.recognitionState.collectAsState()
+        val userPreferencesState by userViewModel.userPreferencesState.collectAsState()
+
+        // 过敏原预警弹窗状态
+        var showAllergenWarning by remember { mutableStateOf(false) }
+        var pendingAddRecord by remember { mutableStateOf(false) }
 
         // 获取用户ID
         val userId =
@@ -41,8 +55,17 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                         null
                 }
 
-        // 加载最新识别结果
-        androidx.compose.runtime.LaunchedEffect(Unit) { foodViewModel.getLatestRecognition(userId) }
+        // 加载最新识别结果和用户偏好
+        LaunchedEffect(Unit) {
+                foodViewModel.getLatestRecognition(userId)
+                userId?.let { userViewModel.getUserPreferences(it) }
+        }
+
+        // 获取用户过敏原列表
+        val userAllergens = when (val state = userPreferencesState) {
+                is UserPreferencesState.Success -> state.data.allergens ?: emptyList()
+                else -> emptyList()
+        }
 
         // 从识别结果中查找对应的菜品
         val dishItem =
@@ -89,7 +112,9 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 carbs = dishItem.carbs.toFloat(),
                                 isRecommended = dishItem.isRecommended,
                                 tags = tags,
-                                aiReason = dishItem.reason ?: "暂无推荐理由"
+                                aiReason = dishItem.reason ?: "暂无推荐理由",
+                                allergens = emptyList(),
+                                allergenReasoning = null
                         )
                 } else {
                         // 如果找不到，使用默认数据
@@ -102,9 +127,14 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 carbs = 0f,
                                 isRecommended = false,
                                 tags = emptyList(),
-                                aiReason = "正在加载数据..."
+                                aiReason = "正在加载数据...",
+                                allergens = emptyList(),
+                                allergenReasoning = null
                         )
                 }
+
+        // 计算匹配的过敏原
+        val matchedAllergens = matchUserAllergens(nutritionData.allergens, userAllergens)
 
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 // 顶部展示区域
@@ -278,6 +308,16 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 }
                         }
 
+                        // 过敏原高亮展示区域
+                        if (nutritionData.allergens.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                AllergenHighlightSection(
+                                        detectedAllergens = nutritionData.allergens,
+                                        matchedAllergens = matchedAllergens,
+                                        allergenReasoning = nutritionData.allergenReasoning
+                                )
+                        }
+
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // 添加到饮食记录按钮
@@ -297,31 +337,39 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 }
                         }
 
+                        // 实际添加记录的逻辑
+                        fun doAddRecord() {
+                                if (userId != null && dishItem != null) {
+                                        val currentHour =
+                                                java.util.Calendar.getInstance()
+                                                        .get(java.util.Calendar.HOUR_OF_DAY)
+                                        val mealType =
+                                                when {
+                                                        currentHour < 10 -> "breakfast"
+                                                        currentHour < 15 -> "lunch"
+                                                        currentHour < 20 -> "dinner"
+                                                        else -> "snack"
+                                                }
+
+                                        foodViewModel.addDietRecord(
+                                                userId = userId,
+                                                foodName = dishItem.name,
+                                                calories = dishItem.calories.toDouble(),
+                                                protein = dishItem.protein.toDouble(),
+                                                fat = dishItem.fat.toDouble(),
+                                                carbs = dishItem.carbs.toDouble(),
+                                                mealType = mealType
+                                        )
+                                }
+                        }
+
                         Button(
                                 onClick = {
-                                        if (userId != null && dishItem != null) {
-                                                // 根据当前时间判断餐次（简化处理，默认午餐）
-                                                val currentHour =
-                                                        java.util.Calendar.getInstance()
-                                                                .get(java.util.Calendar.HOUR_OF_DAY)
-                                                val mealType =
-                                                        when {
-                                                                currentHour < 10 ->
-                                                                        "breakfast" // 早餐
-                                                                currentHour < 15 -> "lunch" // 午餐
-                                                                currentHour < 20 -> "dinner" // 晚餐
-                                                                else -> "snack" // 加餐
-                                                        }
-
-                                                foodViewModel.addDietRecord(
-                                                        userId = userId,
-                                                        foodName = dishItem.name,
-                                                        calories = dishItem.calories.toDouble(),
-                                                        protein = dishItem.protein.toDouble(),
-                                                        fat = dishItem.fat.toDouble(),
-                                                        carbs = dishItem.carbs.toDouble(),
-                                                        mealType = mealType
-                                                )
+                                        // 如果有匹配的过敏原，显示预警弹窗
+                                        if (matchedAllergens.isNotEmpty()) {
+                                                showAllergenWarning = true
+                                        } else {
+                                                doAddRecord()
                                         }
                                 },
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -372,6 +420,43 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 )
                         }
                 }
+
+                // 过敏原预警弹窗
+                if (showAllergenWarning) {
+                        AllergenWarningDialog(
+                                matchedAllergens = matchedAllergens.map { 
+                                        com.example.lifehub.ui.components.getAllergenDisplayName(it) 
+                                },
+                                allergenReasoning = nutritionData.allergenReasoning,
+                                onDismiss = { showAllergenWarning = false },
+                                onConfirm = {
+                                        showAllergenWarning = false
+                                        // 用户确认后添加记录
+                                        if (userId != null && dishItem != null) {
+                                                val currentHour =
+                                                        java.util.Calendar.getInstance()
+                                                                .get(java.util.Calendar.HOUR_OF_DAY)
+                                                val mealType =
+                                                        when {
+                                                                currentHour < 10 -> "breakfast"
+                                                                currentHour < 15 -> "lunch"
+                                                                currentHour < 20 -> "dinner"
+                                                                else -> "snack"
+                                                        }
+
+                                                foodViewModel.addDietRecord(
+                                                        userId = userId,
+                                                        foodName = dishItem.name,
+                                                        calories = dishItem.calories.toDouble(),
+                                                        protein = dishItem.protein.toDouble(),
+                                                        fat = dishItem.fat.toDouble(),
+                                                        carbs = dishItem.carbs.toDouble(),
+                                                        mealType = mealType
+                                                )
+                                        }
+                                }
+                        )
+                }
         }
 }
 
@@ -408,5 +493,7 @@ data class NutritionData(
         val carbs: Float,
         val isRecommended: Boolean,
         val tags: List<String>,
-        val aiReason: String
+        val aiReason: String,
+        val allergens: List<String> = emptyList(),
+        val allergenReasoning: String? = null
 )

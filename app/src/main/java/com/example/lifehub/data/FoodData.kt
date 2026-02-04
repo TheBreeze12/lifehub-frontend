@@ -9,5 +9,7 @@ data class FoodData(
         @SerializedName("protein") val protein: Double,
         @SerializedName("fat") val fat: Double,
         @SerializedName("carbs") val carbs: Double,
-        @SerializedName("recommendation") val recommendation: String
+        @SerializedName("recommendation") val recommendation: String,
+        @SerializedName("allergens") val allergens: List<String>? = null,
+        @SerializedName("allergen_reasoning") val allergenReasoning: String? = null
 )
