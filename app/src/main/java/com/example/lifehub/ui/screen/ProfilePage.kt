@@ -27,6 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
+import com.example.lifehub.ui.components.AllergenSelectorDialog
+import com.example.lifehub.ui.components.getAllergenDisplayText
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.TripViewModel
@@ -518,10 +520,8 @@ private fun DietPreferenceSection(
             SettingItem(
                     icon = Icons.Default.Warning,
                     iconTint = Color(0xFFEF4444),
-                    title = "过敏原设置",
-                    value =
-                            if (selectedAllergens.isEmpty()) "未设置"
-                            else selectedAllergens.joinToString("、"),
+                    title = "过敏原档案",
+                    value = getAllergenDisplayText(selectedAllergens),
                     onClick = { showAllergenDialog = true }
             )
         }
@@ -540,9 +540,9 @@ private fun DietPreferenceSection(
         )
     }
 
-    // 过敏原设置对话框
+    // 过敏原档案配置对话框（增强版：支持八大类+自定义输入）
     if (showAllergenDialog) {
-        AllergenDialog(
+        AllergenSelectorDialog(
                 currentAllergens = selectedAllergens,
                 onDismiss = { showAllergenDialog = false },
                 onConfirm = { newAllergens ->
@@ -713,62 +713,6 @@ private fun HealthGoalDialog(
     )
 }
 
-@Composable
-private fun AllergenDialog(
-        currentAllergens: List<String>,
-        onDismiss: () -> Unit,
-        onConfirm: (List<String>) -> Unit
-) {
-    val allAllergens = listOf("海鲜", "花生", "牛奶", "鸡蛋", "大豆", "小麦", "坚果", "鱼类")
-    // 使用 mutableStateOf 包装 Set，确保状态变化能被检测到
-    var selectedAllergens by remember { mutableStateOf(currentAllergens.toSet()) }
-
-    AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("选择过敏原") },
-            text = {
-                Column {
-                    allAllergens.forEach { allergen ->
-                        Row(
-                                modifier =
-                                        Modifier.fillMaxWidth()
-                                                .clickable {
-                                                    // 创建新的 Set 来触发重组
-                                                    selectedAllergens =
-                                                            if (selectedAllergens.contains(allergen)
-                                                            ) {
-                                                                selectedAllergens - allergen
-                                                            } else {
-                                                                selectedAllergens + allergen
-                                                            }
-                                                }
-                                                .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                    checked = selectedAllergens.contains(allergen),
-                                    onCheckedChange = { checked ->
-                                        // 创建新的 Set 来触发重组
-                                        selectedAllergens =
-                                                if (checked) {
-                                                    selectedAllergens + allergen
-                                                } else {
-                                                    selectedAllergens - allergen
-                                                }
-                                    }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(allergen)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { onConfirm(selectedAllergens.toList()) }) { Text("确定") }
-            },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
-    )
-}
 
 @Composable
 private fun TravelModeDialog(
