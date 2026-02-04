@@ -145,6 +145,12 @@ fun MainNavigation() {
             composable(Screen.BeforeMealCamera.route) {
                 BeforeMealCameraPage(navController = navController)
             }
+
+            // Phase 14: 餐后拍摄功能
+            composable(Screen.AfterMealCamera.route) { backStackEntry ->
+                val comparisonId = backStackEntry.arguments?.getString("comparisonId")?.toIntOrNull() ?: 0
+                AfterMealCameraPage(navController = navController, comparisonId = comparisonId)
+            }
         }
     }
 }

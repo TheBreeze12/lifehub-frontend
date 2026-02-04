@@ -22,4 +22,9 @@ sealed class Screen(val route: String) {
     // Phase 13: 餐前餐后对比功能
     object MealComparison : Screen("meal_comparison")
     object BeforeMealCamera : Screen("before_meal_camera")
+
+    // Phase 14: 餐后拍摄功能
+    object AfterMealCamera : Screen("after_meal_camera/{comparisonId}") {
+        fun createRoute(comparisonId: Int) = "after_meal_camera/$comparisonId"
+    }
 }

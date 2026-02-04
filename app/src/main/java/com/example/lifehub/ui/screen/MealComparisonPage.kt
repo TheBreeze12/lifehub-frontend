@@ -20,10 +20,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.lifehub.data.AfterMealData
 import com.example.lifehub.data.BeforeMealData
 import com.example.lifehub.data.DishFeature
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
+import com.example.lifehub.ui.components.MealComparisonResult
+import com.example.lifehub.viewmodel.AfterMealUploadState
 import com.example.lifehub.viewmodel.BeforeMealUploadState
 import com.example.lifehub.viewmodel.FoodViewModel
 
@@ -37,13 +40,15 @@ private val TextSecondary = Color(0xFF8E8E93)
 /**
  * 餐前餐后对比主页面
  * Phase 13: 餐前拍摄功能
- * 用户可以从此页面开始餐前拍摄流程，查看拍摄结果
+ * Phase 14: 餐后拍摄与对比展示
+ * 用户可以从此页面开始餐前拍摄流程，查看拍摄结果，继续餐后拍摄，查看对比结果
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MealComparisonPage(navController: NavController) {
     val foodViewModel: FoodViewModel = viewModel()
     val beforeMealState by foodViewModel.beforeMealUploadState.collectAsState()
+    val afterMealState by foodViewModel.afterMealUploadState.collectAsState()
     val comparisonRecord by foodViewModel.currentComparisonRecord.collectAsState()
 
     // 检查用户登录状态
@@ -98,35 +103,71 @@ fun MealComparisonPage(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // 根据状态显示不同内容
-            when (val state = beforeMealState) {
-                is BeforeMealUploadState.Idle -> {
-                    // 显示开始拍摄按钮
-                    StartCaptureSection(navController)
-                }
-                is BeforeMealUploadState.Loading -> {
-                    // 显示加载中
-                    LoadingSection()
-                }
-                is BeforeMealUploadState.Success -> {
-                    // 显示餐前分析结果
-                    BeforeMealResultSection(
-                            data = state.data,
-                            onContinueToAfter = {
-                                // TODO: Phase 14 - 导航到餐后拍摄页面
+            // Phase 14: 优先显示餐后对比结果
+            when (val afterState = afterMealState) {
+                is AfterMealUploadState.Success -> {
+                    // 显示对比结果
+                    MealComparisonResult(
+                            afterMealData = afterState.data,
+                            onRatioAdjusted = { /* 可选：保存用户调整的比例 */ },
+                            onSaveRecord = {
+                                // TODO: 保存到饮食记录
                             },
-                            onRetake = {
-                                foodViewModel.resetBeforeMealUploadState()
+                            onNewComparison = {
+                                // 重置状态，开始新的对比
+                                foodViewModel.resetMealComparisonState()
                             }
                     )
                 }
-                is BeforeMealUploadState.Error -> {
-                    // 显示错误
+                is AfterMealUploadState.Loading -> {
+                    // 餐后分析中
+                    AfterMealLoadingSection()
+                }
+                is AfterMealUploadState.Error -> {
+                    // 餐后上传错误
                     ErrorSection(
-                            message = state.message,
+                            message = afterState.message,
                             onRetry = {
-                                foodViewModel.resetBeforeMealUploadState()
+                                foodViewModel.resetAfterMealUploadState()
                             }
                     )
+                }
+                else -> {
+                    // 餐前流程
+                    when (val state = beforeMealState) {
+                        is BeforeMealUploadState.Idle -> {
+                            // 显示开始拍摄按钮
+                            StartCaptureSection(navController)
+                        }
+                        is BeforeMealUploadState.Loading -> {
+                            // 显示加载中
+                            LoadingSection()
+                        }
+                        is BeforeMealUploadState.Success -> {
+                            // 显示餐前分析结果，Phase 14: 启用餐后拍摄按钮
+                            BeforeMealResultSection(
+                                    data = state.data,
+                                    onContinueToAfter = {
+                                        // Phase 14: 导航到餐后拍摄页面
+                                        navController.navigate(
+                                                Screen.AfterMealCamera.createRoute(state.data.comparisonId)
+                                        )
+                                    },
+                                    onRetake = {
+                                        foodViewModel.resetBeforeMealUploadState()
+                                    }
+                            )
+                        }
+                        is BeforeMealUploadState.Error -> {
+                            // 显示错误
+                            ErrorSection(
+                                    message = state.message,
+                                    onRetry = {
+                                        foodViewModel.resetBeforeMealUploadState()
+                                    }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -417,6 +458,42 @@ private fun LoadingSection() {
     }
 }
 
+/** Phase 14: 餐后分析加载中区域 */
+@Composable
+private fun AfterMealLoadingSection() {
+    Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator(
+                    color = ForestGreen,
+                    modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                    text = "AI正在对比分析...",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextPrimary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                    text = "正在计算净摄入热量，请稍候",
+                    fontSize = 14.sp,
+                    color = TextSecondary
+            )
+        }
+    }
+}
+
 /** 餐前分析结果区域 */
 @Composable
 private fun BeforeMealResultSection(
@@ -495,17 +572,22 @@ private fun BeforeMealResultSection(
                         onClick = onContinueToAfter,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = VitalOrange),
-                        enabled = false // Phase 14才启用
+                        colors = ButtonDefaults.buttonColors(containerColor = VitalOrange)
                 ) {
+                    Icon(
+                            Icons.Default.Restaurant,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text("用餐后继续", color = Color.White)
                 }
             }
 
-            // 提示
+            // Phase 14: 提示用户用餐后继续
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                    text = "* 餐后拍摄功能将在后续版本中开放",
+                    text = "用餐完毕后，点击“用餐后继续”拍摄餐后照片",
                     fontSize = 12.sp,
                     color = TextSecondary,
                     modifier = Modifier.fillMaxWidth(),
