@@ -246,6 +246,20 @@ interface ApiService {
                 @Query("userId") userId: Int,
                 @Query("week_start") weekStart: String
         ): WeeklyCalorieStatsResponse
+
+        // ==================== 营养素统计服务 (Phase 18) ====================
+
+        /**
+         * 获取每日营养素统计 GET /api/stats/nutrients/daily
+         * @param userId 用户ID
+         * @param date 统计日期（YYYY-MM-DD格式）
+         * @return 每日营养素统计数据（包含与膳食指南对比）
+         */
+        @GET("/api/stats/nutrients/daily")
+        suspend fun getDailyNutrientStats(
+                @Query("userId") userId: Int,
+                @Query("date") date: String
+        ): DailyNutrientStatsResponse
 }
 
 

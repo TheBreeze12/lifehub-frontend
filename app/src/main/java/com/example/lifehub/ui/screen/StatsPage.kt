@@ -20,9 +20,12 @@ import com.example.lifehub.data.StatsViewMode
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.ui.components.CalorieChart
 import com.example.lifehub.ui.components.CalorieSummaryCard
+import com.example.lifehub.ui.components.NutrientRadarChart
+import com.example.lifehub.ui.components.NutrientSummaryCard
 import com.example.lifehub.ui.components.WeeklySummaryCard
 import com.example.lifehub.ui.theme.ForestGreen
 import com.example.lifehub.viewmodel.DailyStatsUiState
+import com.example.lifehub.viewmodel.NutrientStatsUiState
 import com.example.lifehub.viewmodel.StatsViewModel
 import com.example.lifehub.viewmodel.WeeklyStatsUiState
 
@@ -41,6 +44,7 @@ fun StatsPage(
     val dailyStatsState by statsViewModel.dailyStatsState.collectAsState()
     val weeklyStatsState by statsViewModel.weeklyStatsState.collectAsState()
     val chartDataPoints by statsViewModel.chartDataPoints.collectAsState()
+    val nutrientStatsState by statsViewModel.nutrientStatsState.collectAsState()  // Phase 18
 
     // 获取当前用户ID
     val userId = UserSession.userId ?: 1
@@ -94,8 +98,10 @@ fun StatsPage(
             when (viewMode) {
                 StatsViewMode.DAILY -> DailyStatsContent(
                     state = dailyStatsState,
+                    nutrientState = nutrientStatsState,  // Phase 18
                     chartDataPoints = chartDataPoints,
-                    onRetry = { statsViewModel.getDailyCalorieStats(userId) }
+                    onRetry = { statsViewModel.getDailyCalorieStats(userId) },
+                    onRetryNutrient = { statsViewModel.getDailyNutrientStats(userId) }  // Phase 18
                 )
                 StatsViewMode.WEEKLY -> WeeklyStatsContent(
                     state = weeklyStatsState,
@@ -190,8 +196,10 @@ private fun DateNavigator(
 @Composable
 private fun DailyStatsContent(
     state: DailyStatsUiState,
+    nutrientState: NutrientStatsUiState,  // Phase 18
     chartDataPoints: List<com.example.lifehub.data.ChartDataPoint>,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onRetryNutrient: () -> Unit  // Phase 18
 ) {
     when (state) {
         is DailyStatsUiState.Idle -> {
@@ -235,6 +243,14 @@ private fun DailyStatsContent(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Phase 18: 营养素雷达图区域
+                NutrientStatsSection(
+                    nutrientState = nutrientState,
+                    onRetry = onRetryNutrient
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -408,5 +424,191 @@ private fun DetailInfoCard(
                 }
             }
         }
+    }
+}
+
+// ============== Phase 18: 营养素统计区域 ==============
+
+/**
+ * Phase 18: 营养素统计展示区域
+ * 包含营养素摘要卡片和雷达图
+ */
+@Composable
+private fun NutrientStatsSection(
+    nutrientState: NutrientStatsUiState,
+    onRetry: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "营养素分析",
+                style = MaterialTheme.typography.titleMedium
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            when (nutrientState) {
+                is NutrientStatsUiState.Idle -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = ForestGreen)
+                    }
+                }
+                is NutrientStatsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = ForestGreen)
+                    }
+                }
+                is NutrientStatsUiState.Success -> {
+                    val nutrientData = nutrientState.data
+                    
+                    // 营养素摘要卡片
+                    NutrientSummaryCard(stats = nutrientData)
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // 营养素雷达图
+                    Text(
+                        text = "营养素比例（与膳食指南对比）",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    NutrientRadarChart(
+                        stats = nutrientData,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    // 显示建议信息
+                    nutrientData.guidelinesComparison?.let { comparison ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        NutrientAdviceSection(comparison = comparison)
+                    }
+                }
+                is NutrientStatsUiState.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = nutrientState.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onRetry,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ForestGreen
+                            )
+                        ) {
+                            Text("重试")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Phase 18: 营养素建议区域
+ * 显示每个营养素的摄入建议
+ */
+@Composable
+private fun NutrientAdviceSection(
+    comparison: com.example.lifehub.data.GuidelinesComparison
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        comparison.protein?.let { protein ->
+            if (protein.status != "normal") {
+                NutrientAdviceItem(
+                    nutrientName = "蛋白质",
+                    status = protein.status,
+                    message = protein.message
+                )
+            }
+        }
+        comparison.fat?.let { fat ->
+            if (fat.status != "normal") {
+                NutrientAdviceItem(
+                    nutrientName = "脂肪",
+                    status = fat.status,
+                    message = fat.message
+                )
+            }
+        }
+        comparison.carbs?.let { carbs ->
+            if (carbs.status != "normal") {
+                NutrientAdviceItem(
+                    nutrientName = "碳水化合物",
+                    status = carbs.status,
+                    message = carbs.message
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Phase 18: 单个营养素建议项
+ */
+@Composable
+private fun NutrientAdviceItem(
+    nutrientName: String,
+    status: String,
+    message: String
+) {
+    val statusColor = when (status) {
+        "low" -> androidx.compose.ui.graphics.Color(0xFFFF9800)  // Orange
+        "high" -> androidx.compose.ui.graphics.Color(0xFFF44336) // Red
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(8.dp)) {
+            drawCircle(color = statusColor)
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = message.ifEmpty { 
+                when (status) {
+                    "low" -> "${nutrientName}摄入偏低，建议适当增加"
+                    "high" -> "${nutrientName}摄入偏高，建议适当控制"
+                    else -> "${nutrientName}摄入正常"
+                }
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = statusColor
+        )
     }
 }

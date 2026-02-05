@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifehub.data.ChartDataPoint
 import com.example.lifehub.data.DailyCalorieStats
+import com.example.lifehub.data.DailyNutrientStats
 import com.example.lifehub.data.StatsViewMode
 import com.example.lifehub.data.WeeklyCalorieStats
 import com.example.lifehub.network.RetrofitClient
@@ -37,6 +38,14 @@ sealed class WeeklyStatsUiState {
     data class Error(val message: String) : WeeklyStatsUiState()
 }
 
+/** Phase 18: 营养素统计UI状态 */
+sealed class NutrientStatsUiState {
+    object Idle : NutrientStatsUiState()
+    object Loading : NutrientStatsUiState()
+    data class Success(val data: DailyNutrientStats) : NutrientStatsUiState()
+    data class Error(val message: String) : NutrientStatsUiState()
+}
+
 class StatsViewModel : ViewModel() {
 
     private val _dailyStatsState = MutableStateFlow<DailyStatsUiState>(DailyStatsUiState.Idle)
@@ -53,6 +62,10 @@ class StatsViewModel : ViewModel() {
 
     private val _chartDataPoints = MutableStateFlow<List<ChartDataPoint>>(emptyList())
     val chartDataPoints: StateFlow<List<ChartDataPoint>> = _chartDataPoints.asStateFlow()
+
+    // Phase 18: 营养素统计状态
+    private val _nutrientStatsState = MutableStateFlow<NutrientStatsUiState>(NutrientStatsUiState.Idle)
+    val nutrientStatsState: StateFlow<NutrientStatsUiState> = _nutrientStatsState.asStateFlow()
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -226,8 +239,46 @@ class StatsViewModel : ViewModel() {
      */
     fun refresh(userId: Int) {
         when (_viewMode.value) {
-            StatsViewMode.DAILY -> getDailyCalorieStats(userId)
+            StatsViewMode.DAILY -> {
+                getDailyCalorieStats(userId)
+                getDailyNutrientStats(userId)  // Phase 18: 同时获取营养素统计
+            }
             StatsViewMode.WEEKLY -> getWeeklyCalorieStats(userId)
+        }
+    }
+
+    // ============== Phase 18: 营养素统计 ==============
+
+    /**
+     * 获取每日营养素统计
+     * @param userId 用户ID
+     * @param date 统计日期
+     */
+    fun getDailyNutrientStats(userId: Int, date: LocalDate = _selectedDate.value) {
+        viewModelScope.launch {
+            _nutrientStatsState.value = NutrientStatsUiState.Loading
+
+            try {
+                val dateStr = date.format(dateFormatter)
+                val response = RetrofitClient.apiService.getDailyNutrientStats(userId, dateStr)
+
+                if (response.code == 200 && response.data != null) {
+                    _nutrientStatsState.value = NutrientStatsUiState.Success(response.data)
+                } else {
+                    _nutrientStatsState.value = NutrientStatsUiState.Error(
+                        response.message ?: "获取营养素统计失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _nutrientStatsState.value = NutrientStatsUiState.Error(
+                    when {
+                        e.message?.contains("Unable to resolve host") == true ->
+                            "网络连接失败，请检查后端服务是否启动"
+                        e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                        else -> "获取营养素统计失败：${e.message ?: "未知错误"}"
+                    }
+                )
+            }
         }
     }
 
@@ -237,6 +288,7 @@ class StatsViewModel : ViewModel() {
     fun resetState() {
         _dailyStatsState.value = DailyStatsUiState.Idle
         _weeklyStatsState.value = WeeklyStatsUiState.Idle
+        _nutrientStatsState.value = NutrientStatsUiState.Idle  // Phase 18
         _chartDataPoints.value = emptyList()
     }
 
