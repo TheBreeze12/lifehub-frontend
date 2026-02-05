@@ -151,6 +151,11 @@ fun MainNavigation() {
                 val comparisonId = backStackEntry.arguments?.getString("comparisonId")?.toIntOrNull() ?: 0
                 AfterMealCameraPage(navController = navController, comparisonId = comparisonId)
             }
+
+            // Phase 17: 热量收支统计页面
+            composable(Screen.Stats.route) {
+                StatsPage(navController = navController)
+            }
         }
     }
 }

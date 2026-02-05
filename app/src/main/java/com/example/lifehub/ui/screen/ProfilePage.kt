@@ -426,13 +426,15 @@ private fun StatsCards(navController: NavController, tripCount: Int, dietRecordC
                 iconTint = ForestGreen,
                 onClick = { navController.navigate(Screen.TripList.route) }
         )
+        // Phase 17: 热量收支统计入口
         StatCard(
                 modifier = Modifier.weight(1f),
-                value = "0",
-                label = "连续打卡",
+                value = "📊",
+                label = "热量统计",
                 gradientColors =
                         listOf(SkyBlueLight.copy(alpha = 0.2f), SkyBlue.copy(alpha = 0.1f)),
-                iconTint = SkyBlue
+                iconTint = SkyBlue,
+                onClick = { navController.navigate(Screen.Stats.route) }
         )
     }
 }

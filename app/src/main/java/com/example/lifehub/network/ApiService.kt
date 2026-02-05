@@ -2,7 +2,6 @@ package com.example.lifehub.network
 
 import com.example.lifehub.data.*
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import retrofit2.http.*
 
 /** API服务接口定义 - MVP版本完整接口 */
@@ -221,6 +220,32 @@ interface ApiService {
                 @Path("comparison_id") comparisonId: Int,
                 @Part image: MultipartBody.Part
         ): AfterMealResponse
+
+        // ==================== 数据统计服务 (Phase 17) ====================
+
+        /**
+         * 获取每日热量统计 GET /api/stats/calories/daily
+         * @param userId 用户ID
+         * @param date 统计日期（YYYY-MM-DD格式）
+         * @return 每日热量统计数据
+         */
+        @GET("/api/stats/calories/daily")
+        suspend fun getDailyCalorieStats(
+                @Query("userId") userId: Int,
+                @Query("date") date: String
+        ): DailyCalorieStatsResponse
+
+        /**
+         * 获取每周热量统计 GET /api/stats/calories/weekly
+         * @param userId 用户ID
+         * @param weekStart 周起始日期（YYYY-MM-DD格式，应为周一）
+         * @return 每周热量统计数据
+         */
+        @GET("/api/stats/calories/weekly")
+        suspend fun getWeeklyCalorieStats(
+                @Query("userId") userId: Int,
+                @Query("week_start") weekStart: String
+        ): WeeklyCalorieStatsResponse
 }
 
 

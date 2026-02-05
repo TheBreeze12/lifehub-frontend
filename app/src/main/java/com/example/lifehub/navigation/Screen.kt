@@ -27,4 +27,7 @@ sealed class Screen(val route: String) {
     object AfterMealCamera : Screen("after_meal_camera/{comparisonId}") {
         fun createRoute(comparisonId: Int) = "after_meal_camera/$comparisonId"
     }
+
+    // Phase 17: 热量收支统计页面
+    object Stats : Screen("stats")
 }
