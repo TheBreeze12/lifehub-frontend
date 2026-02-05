@@ -64,3 +64,55 @@ data class TripListResponse(
         @SerializedName("message") val message: String?,
         @SerializedName("data") val data: List<TripSummary>?
 )
+
+// ==================== Phase 24: 帕累托最优路径数据模型 ====================
+
+/** 路径点数据模型 */
+data class RouteWaypoint(
+        @SerializedName("lat") val lat: Double,
+        @SerializedName("lng") val lng: Double,
+        @SerializedName("order") val order: Int = 0,
+        @SerializedName("type") val type: String = "waypoint" // start/waypoint/end
+)
+
+/** 帕累托最优路径数据模型 */
+data class ParetoRoute(
+        @SerializedName("route_id") val routeId: Int,
+        @SerializedName("route_name") val routeName: String,
+        @SerializedName("time_minutes") val timeMinutes: Double,
+        @SerializedName("calories_burn") val caloriesBurn: Double,
+        @SerializedName("greenery_score") val greeneryScore: Double,
+        @SerializedName("distance_meters") val distanceMeters: Double,
+        @SerializedName("waypoints") val waypoints: List<RouteWaypoint> = emptyList(),
+        @SerializedName("exercise_type") val exerciseType: String? = null,
+        @SerializedName("intensity") val intensity: Double? = null
+)
+
+/** 生成帕累托路径请求 */
+data class GenerateRoutesRequest(
+        @SerializedName("start_lat") val startLat: Double,
+        @SerializedName("start_lng") val startLng: Double,
+        @SerializedName("target_calories") val targetCalories: Double,
+        @SerializedName("max_time_minutes") val maxTimeMinutes: Int? = 60,
+        @SerializedName("exercise_type") val exerciseType: String? = "walking",
+        @SerializedName("weight_kg") val weightKg: Double? = 70.0
+)
+
+/** 路径响应数据 */
+data class RoutesResponseData(
+        @SerializedName("routes") val routes: List<ParetoRoute> = emptyList(),
+        @SerializedName("start_point") val startPoint: RouteWaypoint,
+        @SerializedName("target_calories") val targetCalories: Double,
+        @SerializedName("max_time_minutes") val maxTimeMinutes: Int,
+        @SerializedName("exercise_type") val exerciseType: String,
+        @SerializedName("weight_kg") val weightKg: Double,
+        @SerializedName("n_routes") val nRoutes: Int
+)
+
+/** 生成帕累托路径响应 */
+data class GenerateRoutesResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: RoutesResponseData?
+)
+

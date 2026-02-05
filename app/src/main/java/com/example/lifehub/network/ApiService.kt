@@ -260,6 +260,16 @@ interface ApiService {
                 @Query("userId") userId: Int,
                 @Query("date") date: String
         ): DailyNutrientStatsResponse
+
+        // ==================== 帕累托路径规划服务 (Phase 24) ====================
+
+        /**
+         * 生成帕累托最优运动路径 POST /api/trip/routes
+         * @param request 路径生成请求（起点坐标、目标热量等）
+         * @return 2-3条帕累托最优路径
+         */
+        @POST("/api/trip/routes")
+        suspend fun generateRoutes(@Body request: GenerateRoutesRequest): GenerateRoutesResponse
 }
 
 

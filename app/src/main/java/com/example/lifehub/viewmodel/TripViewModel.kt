@@ -34,6 +34,14 @@ class TripViewModel : ViewModel() {
     private val _tripListState = MutableStateFlow<TripListState>(TripListState.Idle)
     val tripListState: StateFlow<TripListState> = _tripListState.asStateFlow()
 
+    // Phase 24: 帕累托路径状态
+    private val _routesState = MutableStateFlow<RoutesState>(RoutesState.Idle)
+    val routesState: StateFlow<RoutesState> = _routesState.asStateFlow()
+
+    // Phase 24: 当前选中的路线索引
+    private val _selectedRouteIndex = MutableStateFlow(0)
+    val selectedRouteIndex: StateFlow<Int> = _selectedRouteIndex.asStateFlow()
+
     /**
      * 生成运动计划
      * @param userId 用户ID
@@ -204,6 +212,85 @@ class TripViewModel : ViewModel() {
     fun resetTripListState() {
         _tripListState.value = TripListState.Idle
     }
+
+    // ==================== Phase 24: 帕累托路径方法 ====================
+
+    /**
+     * 生成帕累托最优路径
+     * @param startLat 起点纬度
+     * @param startLng 起点经度
+     * @param targetCalories 目标热量消耗
+     * @param maxTimeMinutes 最大运动时间（分钟）
+     * @param exerciseType 运动类型
+     * @param weightKg 用户体重
+     */
+    fun generateRoutes(
+            startLat: Double,
+            startLng: Double,
+            targetCalories: Double,
+            maxTimeMinutes: Int = 60,
+            exerciseType: String = "walking",
+            weightKg: Double = 70.0
+    ) {
+        viewModelScope.launch {
+            _routesState.value = RoutesState.Loading
+
+            try {
+                val response =
+                        apiService.generateRoutes(
+                                GenerateRoutesRequest(
+                                        startLat = startLat,
+                                        startLng = startLng,
+                                        targetCalories = targetCalories,
+                                        maxTimeMinutes = maxTimeMinutes,
+                                        exerciseType = exerciseType,
+                                        weightKg = weightKg
+                                )
+                        )
+
+                if (response.code == 200 && response.data != null) {
+                    _routesState.value = RoutesState.Success(response.data)
+                    _selectedRouteIndex.value = 0 // 默认选中第一条路线
+                } else {
+                    _routesState.value =
+                            RoutesState.Error(response.message ?: "生成路径失败")
+                }
+            } catch (e: Exception) {
+                _routesState.value = RoutesState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
+    /**
+     * 选择路线
+     * @param index 路线索引
+     */
+    fun selectRoute(index: Int) {
+        val currentState = _routesState.value
+        if (currentState is RoutesState.Success) {
+            val maxIndex = currentState.data.routes.size - 1
+            if (index in 0..maxIndex) {
+                _selectedRouteIndex.value = index
+            }
+        }
+    }
+
+    /** 获取当前选中的路线 */
+    fun getSelectedRoute(): ParetoRoute? {
+        val currentState = _routesState.value
+        return if (currentState is RoutesState.Success) {
+            val index = _selectedRouteIndex.value
+            currentState.data.routes.getOrNull(index)
+        } else {
+            null
+        }
+    }
+
+    /** 重置路径状态 */
+    fun resetRoutesState() {
+        _routesState.value = RoutesState.Idle
+        _selectedRouteIndex.value = 0
+    }
 }
 
 /** 生成行程状态 */
@@ -244,4 +331,12 @@ sealed class TripListState {
     object Loading : TripListState()
     data class Success(val trips: List<TripSummary>) : TripListState()
     data class Error(val message: String) : TripListState()
+}
+
+/** Phase 24: 帕累托路径状态 */
+sealed class RoutesState {
+    object Idle : RoutesState()
+    object Loading : RoutesState()
+    data class Success(val data: RoutesResponseData) : RoutesState()
+    data class Error(val message: String) : RoutesState()
 }

@@ -25,7 +25,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.WeatherData
 import com.example.lifehub.network.RetrofitClient
+import com.example.lifehub.ui.components.AMapComposeView
+import com.example.lifehub.ui.components.RouteOverlay
+import com.example.lifehub.ui.components.routesToPolylines
 import com.example.lifehub.ui.theme.*
+import com.example.lifehub.viewmodel.RoutesState
 import com.example.lifehub.viewmodel.TripViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,6 +46,13 @@ fun TripDetailPage(
 
         val tripDetailState by tripViewModel.tripDetailState.collectAsState()
         var weatherData by remember { mutableStateOf<WeatherData?>(null) }
+        
+        // Phase 24: 收集路径状态
+        val routesState by tripViewModel.routesState.collectAsState()
+        val selectedRouteIndex by tripViewModel.selectedRouteIndex.collectAsState()
+        
+        // Phase 24: 是否显示地图
+        var showMapView by remember { mutableStateOf(false) }
 
         when (val state = tripDetailState) {
                 is com.example.lifehub.viewmodel.TripDetailState.Loading -> {
@@ -128,6 +139,29 @@ fun TripDetailPage(
                                                                         ),
                                                                 destination = tripPlan.destination
                                                                                 ?: "运动区域"
+                                                        )
+                                                }
+
+                                                // Phase 24: 地图和路线展示区域
+                                                item {
+                                                        RouteMapSection(
+                                                                showMapView = showMapView,
+                                                                onToggleMap = { showMapView = !showMapView },
+                                                                routesState = routesState,
+                                                                selectedRouteIndex = selectedRouteIndex,
+                                                                onRouteSelected = { tripViewModel.selectRoute(it) },
+                                                                onGenerateRoutes = {
+                                                                        // 使用默认位置（北京）生成路径
+                                                                        // 实际应用中应使用用户真实位置
+                                                                        tripViewModel.generateRoutes(
+                                                                                startLat = 39.9042,
+                                                                                startLng = 116.4074,
+                                                                                targetCalories = 300.0,
+                                                                                maxTimeMinutes = 60,
+                                                                                exerciseType = "walking",
+                                                                                weightKg = 70.0
+                                                                        )
+                                                                }
                                                         )
                                                 }
 
@@ -738,3 +772,215 @@ data class TripItemData(
         val duration: String?,
         val notes: String?
 )
+
+// ==================== Phase 24: 地图和路线展示组件 ====================
+
+/**
+ * 路线地图区域 - Phase 24
+ * 展示帕累托最优路线的地图和信息
+ */
+@Composable
+private fun RouteMapSection(
+        showMapView: Boolean,
+        onToggleMap: () -> Unit,
+        routesState: RoutesState,
+        selectedRouteIndex: Int,
+        onRouteSelected: (Int) -> Unit,
+        onGenerateRoutes: () -> Unit
+) {
+        Card(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                ambientColor = ForestGreen.copy(alpha = 0.1f),
+                                spotColor = ForestGreen.copy(alpha = 0.15f)
+                        ),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+                Column(
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                        // 标题行
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                        ) {
+                                Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                        Icon(
+                                                imageVector = Icons.Default.Map,
+                                                contentDescription = null,
+                                                tint = ForestGreen,
+                                                modifier = Modifier.size(24.dp)
+                                        )
+                                        Text(
+                                                text = "运动路线",
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextPrimary
+                                        )
+                                }
+                                
+                                Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                        // 生成路线按钮
+                                        if (routesState is RoutesState.Idle || routesState is RoutesState.Error) {
+                                                TextButton(
+                                                        onClick = onGenerateRoutes,
+                                                        colors = ButtonDefaults.textButtonColors(
+                                                                contentColor = ForestGreen
+                                                        )
+                                                ) {
+                                                        Icon(
+                                                                imageVector = Icons.Default.Route,
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                                text = "生成路线",
+                                                                fontSize = 13.sp
+                                                        )
+                                                }
+                                        }
+                                        
+                                        // 展开/收起地图按钮
+                                        IconButton(
+                                                onClick = onToggleMap,
+                                                modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(ForestGreenLight.copy(alpha = 0.2f))
+                                        ) {
+                                                Icon(
+                                                        imageVector = if (showMapView) 
+                                                                Icons.Default.ExpandLess 
+                                                        else 
+                                                                Icons.Default.ExpandMore,
+                                                        contentDescription = if (showMapView) "收起地图" else "展开地图",
+                                                        tint = ForestGreen,
+                                                        modifier = Modifier.size(20.dp)
+                                                )
+                                        }
+                                }
+                        }
+                        
+                        // 路线状态内容
+                        when (routesState) {
+                                is RoutesState.Loading -> {
+                                        Box(
+                                                modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(100.dp),
+                                                contentAlignment = Alignment.Center
+                                        ) {
+                                                Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                        CircularProgressIndicator(
+                                                                color = ForestGreen,
+                                                                modifier = Modifier.size(32.dp)
+                                                        )
+                                                        Text(
+                                                                text = "正在生成最优路线...",
+                                                                fontSize = 13.sp,
+                                                                color = TextSecondary
+                                                        )
+                                                }
+                                        }
+                                }
+                                
+                                is RoutesState.Success -> {
+                                        val routes = routesState.data.routes
+                                        
+                                        // 地图视图（可展开/收起）
+                                        if (showMapView && routes.isNotEmpty()) {
+                                                Box(
+                                                        modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .height(200.dp)
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                ) {
+                                                        // 获取起点坐标
+                                                        val startPoint = routesState.data.startPoint
+                                                        val polylines = routesToPolylines(routes, selectedRouteIndex)
+                                                        
+                                                        AMapComposeView(
+                                                                modifier = Modifier.fillMaxSize(),
+                                                                initialLatitude = startPoint.lat,
+                                                                initialLongitude = startPoint.lng,
+                                                                initialZoom = 15f,
+                                                                showLocation = true,
+                                                                polylines = polylines
+                                                        )
+                                                }
+                                        }
+                                        
+                                        // 路线选择和信息展示
+                                        RouteOverlay(
+                                                routes = routes,
+                                                selectedIndex = selectedRouteIndex,
+                                                onRouteSelected = onRouteSelected
+                                        )
+                                }
+                                
+                                is RoutesState.Error -> {
+                                        Row(
+                                                modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                                Icon(
+                                                        imageVector = Icons.Default.ErrorOutline,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                        text = routesState.message,
+                                                        fontSize = 13.sp,
+                                                        color = MaterialTheme.colorScheme.error
+                                                )
+                                        }
+                                }
+                                
+                                is RoutesState.Idle -> {
+                                        // 空闲状态提示
+                                        Row(
+                                                modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                                Icon(
+                                                        imageVector = Icons.Default.Info,
+                                                        contentDescription = null,
+                                                        tint = TextTertiary,
+                                                        modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                        text = "点击"生成路线"查看推荐的运动路径",
+                                                        fontSize = 13.sp,
+                                                        color = TextTertiary
+                                                )
+                                        }
+                                }
+                        }
+                }
+        }
+}
