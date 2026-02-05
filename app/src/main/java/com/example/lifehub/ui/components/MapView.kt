@@ -77,23 +77,26 @@ fun AMapComposeView(
 ) {
     val context = LocalContext.current
     var mapViewState by remember { mutableStateOf<AMapViewState>(AMapViewState.Loading) }
-    var mapView by remember { mutableStateOf<MapView?>(null) }
-
-    // 初始化地图
-    LaunchedEffect(Unit) {
+    
+    // 使用remember创建MapView，确保同步初始化
+    val mapView = remember {
         try {
-            mapView = MapView(context).apply {
+            MapView(context).apply {
                 onCreate(Bundle())
             }
         } catch (e: Exception) {
-            mapViewState = AMapViewState.Error("地图初始化失败: ${e.message}")
+            null
         }
     }
 
     // 地图View的生命周期管理
     DisposableEffect(mapView) {
-        mapView?.let { mv ->
-            mv.getMapAsync { aMap ->
+        if (mapView == null) {
+            mapViewState = AMapViewState.Error("地图初始化失败")
+            return@DisposableEffect onDispose { }
+        }
+        
+        mapView.getMapAsync { aMap ->
                 try {
                     // 配置地图
                     setupMap(
@@ -120,8 +123,7 @@ fun AMapComposeView(
         }
 
         onDispose {
-            mapView?.onDestroy()
-            mapView = null
+            mapView.onDestroy()
         }
     }
 
@@ -149,7 +151,7 @@ fun AMapComposeView(
             is AMapViewState.Success -> {
                 mapView?.let { mv ->
                     AndroidView(
-                        factory = { mv },
+                        factory = { _ -> mv },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

@@ -95,9 +95,10 @@ dependencies {
     implementation("com.patrykandpatrick.vico:core:1.13.1")
     
     // 高德地图SDK - Phase 23: 地图SDK集成
-    implementation("com.amap.api:map2d:latest.integration")
-    implementation("com.amap.api:location:latest.integration")
-    implementation("com.amap.api:search:latest.integration")
+    // 使用固定版本号确保构建稳定性
+    implementation("com.amap.api:map2d:6.0.0")
+    implementation("com.amap.api:location:6.4.2")
+    implementation("com.amap.api:search:9.7.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
