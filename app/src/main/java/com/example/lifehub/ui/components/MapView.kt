@@ -1,9 +1,7 @@
 package com.example.lifehub.ui.components
 
-import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
-import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -97,28 +95,27 @@ fun AMapComposeView(
         }
         
         mapView.getMapAsync { aMap ->
-                try {
-                    // 配置地图
-                    setupMap(
-                        aMap = aMap,
-                        showLocation = showLocation,
-                        initialLat = initialLatitude,
-                        initialLng = initialLongitude,
-                        initialZoom = initialZoom,
-                        onLocationCallback = onLocationCallback
-                    )
+            try {
+                // 配置地图
+                setupMap(
+                    aMap = aMap,
+                    showLocation = showLocation,
+                    initialLat = initialLatitude,
+                    initialLng = initialLongitude,
+                    initialZoom = initialZoom,
+                    onLocationCallback = onLocationCallback
+                )
 
-                    // 添加标记点
-                    addMarkersToMap(aMap, markers)
+                // 添加标记点
+                addMarkersToMap(aMap, markers)
 
-                    // 绘制路线
-                    addPolylinesToMap(aMap, polylines)
+                // 绘制路线
+                addPolylinesToMap(aMap, polylines)
 
-                    mapViewState = AMapViewState.Success(aMap)
-                    onMapReady?.invoke(aMap)
-                } catch (e: Exception) {
-                    mapViewState = AMapViewState.Error("地图配置失败: ${e.message}")
-                }
+                mapViewState = AMapViewState.Success(aMap)
+                onMapReady?.invoke(aMap)
+            } catch (e: Exception) {
+                mapViewState = AMapViewState.Error("地图配置失败: ${e.message}")
             }
         }
 
