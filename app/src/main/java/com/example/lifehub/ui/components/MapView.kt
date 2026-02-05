@@ -94,29 +94,29 @@ fun AMapComposeView(
             return@DisposableEffect onDispose { }
         }
         
-        mapView.getMapAsync { aMap ->
-            try {
-                // 配置地图
-                setupMap(
-                    aMap = aMap,
-                    showLocation = showLocation,
-                    initialLat = initialLatitude,
-                    initialLng = initialLongitude,
-                    initialZoom = initialZoom,
-                    onLocationCallback = onLocationCallback
-                )
+        // 高德地图使用map属性直接获取AMap对象
+        val aMap = mapView.map
+        try {
+            // 配置地图
+            setupMap(
+                aMap = aMap,
+                showLocation = showLocation,
+                initialLat = initialLatitude,
+                initialLng = initialLongitude,
+                initialZoom = initialZoom,
+                onLocationCallback = onLocationCallback
+            )
 
-                // 添加标记点
-                addMarkersToMap(aMap, markers)
+            // 添加标记点
+            addMarkersToMap(aMap, markers)
 
-                // 绘制路线
-                addPolylinesToMap(aMap, polylines)
+            // 绘制路线
+            addPolylinesToMap(aMap, polylines)
 
-                mapViewState = AMapViewState.Success(aMap)
-                onMapReady?.invoke(aMap)
-            } catch (e: Exception) {
-                mapViewState = AMapViewState.Error("地图配置失败: ${e.message}")
-            }
+            mapViewState = AMapViewState.Success(aMap)
+            onMapReady?.invoke(aMap)
+        } catch (e: Exception) {
+            mapViewState = AMapViewState.Error("地图配置失败: ${e.message}")
         }
 
         onDispose {

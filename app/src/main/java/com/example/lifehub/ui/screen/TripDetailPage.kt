@@ -974,7 +974,7 @@ private fun RouteMapSection(
                                                         modifier = Modifier.size(20.dp)
                                                 )
                                                 Text(
-                                                        text = "点击"生成路线"查看推荐的运动路径",
+                                                        text = "点击 生成路线 查看推荐的运动路径",
                                                         fontSize = 13.sp,
                                                         color = TextTertiary
                                                 )

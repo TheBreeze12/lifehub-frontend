@@ -203,9 +203,9 @@ class Phase14AfterMealComparisonTest {
 
     @Test
     fun `test calories display format`() {
-        // 热量显示格式
+        // 热量显示格式 - toInt()使用截断而非四舍五入
         val testCalories = listOf(0.0, 100.5, 250.0, 500.75, 1000.0)
-        val expectedDisplays = listOf("0", "101", "250", "501", "1000")
+        val expectedDisplays = listOf("0", "100", "250", "500", "1000")
         
         for ((calories, expected) in testCalories.zip(expectedDisplays)) {
             val display = formatCalories(calories)

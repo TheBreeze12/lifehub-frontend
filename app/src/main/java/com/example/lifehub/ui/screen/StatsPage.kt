@@ -47,7 +47,7 @@ fun StatsPage(
     val nutrientStatsState by statsViewModel.nutrientStatsState.collectAsState()  // Phase 18
 
     // 获取当前用户ID
-    val userId = UserSession.userId ?: 1
+    val userId = UserSession.getUserId() ?: 1
 
     // 初始加载数据
     LaunchedEffect(viewMode, selectedDate) {
