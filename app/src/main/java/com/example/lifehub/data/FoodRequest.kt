@@ -3,7 +3,7 @@ package com.example.lifehub.data
 import com.google.gson.annotations.SerializedName
 
 /** 菜品分析请求（文本） */
-data class FoodRequest(@SerializedName("foodName") val foodName: String)
+data class FoodRequest(@SerializedName("food_name") val foodName: String)
 
 /** 菜单识别响应 */
 data class RecognizeMenuResponse(

@@ -164,6 +164,7 @@ interface ApiService {
          * @param date 日期（YYYY-MM-DD格式，可选）
          * @return 饮食历史数据
          */
+        @GET("/api/user/diet-history")
         suspend fun getDietHistory(
                 @Query("userId") userId: Int,
                 @Query("date") date: String? = null

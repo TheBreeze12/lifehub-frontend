@@ -96,8 +96,8 @@ dependencies {
     
     // 高德地图SDK - Phase 23: 地图SDK集成
     // 使用3D地图SDK（包名为com.amap.api.maps.*）
+    // 注意：3dmap已内置location库，不能再单独依赖location，否则会类冲突
     implementation("com.amap.api:3dmap:9.6.0")
-    implementation("com.amap.api:location:6.4.2")
     implementation("com.amap.api:search:9.7.0")
     
     testImplementation(libs.junit)
