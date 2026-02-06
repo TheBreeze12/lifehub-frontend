@@ -1,0 +1,34 @@
+PaddleOCR ONNX 模型信息
+========================
+
+模型文件 (3个 ONNX + 1个字典):
+1. ch_PP-OCRv4_det_infer.onnx - 文本检测模型 (DBNet, ~4.5MB)
+   - 输入: [1, 3, H, W], H/W 为32的倍数, 最长边<=960
+   - 输出: 文本区域概率图
+
+2. ch_PP-OCRv4_rec_infer.onnx - 文本识别模型 (CRNN, ~10.4MB)
+   - 输入: [1, 3, 48, 320]
+   - 输出: 字符分类概率 (6624 classes)
+
+3. ch_ppocr_mobile_v2.0_cls_infer.onnx - 方向分类模型 (~0.6MB)
+   - 输入: [1, 3, 48, 192]
+   - 输出: 0度/180度概率
+
+4. ppocr_keys_v1.txt - 字符字典 (6623字)
+
+模型来源:
+---------
+预转换 ONNX 模型来自 HuggingFace Ooredoo-Group/rapidocr-models
+原始模型: PaddleOCR PP-OCRv4 (百度飞桨)
+
+获取方法:
+---------
+  conda activate software_contest
+  python scripts/download_onnx_models.py
+
+当前状态:
+---------
+✅ ch_PP-OCRv4_det_infer.onnx: 已下载 (4.5 MB)
+✅ ch_PP-OCRv4_rec_infer.onnx: 已下载 (10.4 MB)
+✅ ch_ppocr_mobile_v2.0_cls_infer.onnx: 已下载 (0.6 MB)
+✅ ppocr_keys_v1.txt: 已下载 (6623 字符)

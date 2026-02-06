@@ -37,6 +37,9 @@ class OcrService(private val context: android.content.Context) {
         const val DET_DB_UNCLIP_RATIO = 1.5f
         const val DET_MIN_SIZE = 3
 
+        // 识别模型输出类别数（模型固有参数，6624字符 + 1 blank）
+        const val REC_NUM_CLASSES = 6625
+
         // 分类参数
         const val CLS_THRESH = 0.9f
 
@@ -253,7 +256,7 @@ class OcrService(private val context: android.content.Context) {
                 modelName = MODEL_REC,
                 modelPath = MODEL_REC_PATH,
                 inputNames = listOf("x"),
-                outputNames = listOf("softmax_0.tmp_0"),
+                outputNames = listOf("softmax_11.tmp_0"),
                 numThreads = 4
             ))
 
@@ -262,7 +265,7 @@ class OcrService(private val context: android.content.Context) {
                 modelName = MODEL_CLS,
                 modelPath = MODEL_CLS_PATH,
                 inputNames = listOf("x"),
-                outputNames = listOf("softmax_0.tmp_0"),
+                outputNames = listOf("save_infer_model/scale_0.tmp_1"),
                 numThreads = 2
             ))
 
@@ -391,7 +394,7 @@ class OcrService(private val context: android.content.Context) {
         if (result is InferenceResult.Error) return ""
 
         val output = (result as InferenceResult.Success).outputs.values.first() as FloatArray
-        val numClasses = dictionary.size + 1  // +1 for blank token
+        val numClasses = REC_NUM_CLASSES
         if (numClasses <= 1) return ""
         val timeSteps = output.size / numClasses
 
