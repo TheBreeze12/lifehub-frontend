@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -102,6 +103,14 @@ dependencies {
     // 注意：3dmap已内置location库，不能再单独依赖location，否则会类冲突
     implementation("com.amap.api:3dmap:9.6.0")
     implementation("com.amap.api:search:9.7.0")
+    
+    // Room - Phase 34: 本地离线存储
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    
+    // Coroutines Test - Phase 34: 测试协程
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
