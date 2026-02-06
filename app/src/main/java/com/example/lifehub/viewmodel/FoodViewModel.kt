@@ -1,8 +1,14 @@
 package com.example.lifehub.viewmodel
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.lifehub.ai.OcrResult
+import com.example.lifehub.ai.OcrService
+import com.example.lifehub.ai.OcrServiceState
 import com.example.lifehub.data.AddDietRecordRequest
 import com.example.lifehub.data.AfterMealData
 import com.example.lifehub.data.BeforeMealData
@@ -18,10 +24,13 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -35,11 +44,20 @@ sealed class FoodUiState {
     data class Error(val message: String) : FoodUiState()
 }
 
+/** 识别来源：端侧OCR 或 云端AI */
+enum class RecognitionSource(val displayName: String) {
+    EDGE("端侧识别"),
+    CLOUD("云端识别")
+}
+
 /** 菜单识别UI状态 */
 sealed class MenuRecognitionState {
     object Idle : MenuRecognitionState()
     object Loading : MenuRecognitionState()
-    data class Success(val dishes: List<DishItem>) : MenuRecognitionState()
+    data class Success(
+        val dishes: List<DishItem>,
+        val source: RecognitionSource = RecognitionSource.CLOUD
+    ) : MenuRecognitionState()
     data class Error(val message: String) : MenuRecognitionState()
 }
 
@@ -94,6 +112,48 @@ sealed class AfterMealUploadState {
 /** 菜品查询ViewModel */
 class FoodViewModel : ViewModel() {
 
+    companion object {
+        private const val TAG = "FoodViewModel"
+
+        /** 端侧OCR识别最少需要提取到的菜名数量 */
+        const val MIN_EDGE_OCR_DISHES = 1
+
+        /** 菜名最短长度 */
+        const val MIN_DISH_NAME_LENGTH = 2
+
+        /** 菜名最长长度 */
+        const val MAX_DISH_NAME_LENGTH = 20
+
+        /** 需要过滤的非菜品文本（菜单分类标题等） */
+        private val NON_DISH_PATTERNS = setOf(
+            "热菜", "凉菜", "主食", "汤类", "饮品", "甜品", "小吃",
+            "推荐", "招牌", "新品", "特价", "套餐", "合计", "总计",
+            "菜单", "价格", "价目", "电话", "地址", "订餐", "外卖",
+            "备注", "温馨提示", "欢迎光临", "谢谢惠顾", "扫码点餐"
+        )
+
+        /**
+         * 从OCR识别的文本行中提取菜名
+         * 过滤规则：
+         * 1. 过滤掉太短或太长的文本
+         * 2. 过滤掉纯数字/价格
+         * 3. 过滤掉菜单分类标题
+         * 4. 去重
+         */
+        fun extractDishNames(ocrTexts: List<String>): List<String> {
+            return ocrTexts
+                .map { it.trim() }
+                .filter { text ->
+                    text.length in MIN_DISH_NAME_LENGTH..MAX_DISH_NAME_LENGTH &&
+                    !text.matches(Regex("^[\\d.¥￥元/\\s]+$")) &&
+                    !NON_DISH_PATTERNS.any { pattern ->
+                        text.equals(pattern, ignoreCase = true)
+                    }
+                }
+                .distinct()
+        }
+    }
+
     private val _uiState = MutableStateFlow<FoodUiState>(FoodUiState.Idle)
     val uiState: StateFlow<FoodUiState> = _uiState.asStateFlow()
 
@@ -124,6 +184,182 @@ class FoodViewModel : ViewModel() {
 
     private val _currentComparisonRecord = MutableStateFlow<MealComparisonRecord?>(null)
     val currentComparisonRecord: StateFlow<MealComparisonRecord?> = _currentComparisonRecord.asStateFlow()
+
+    /** 端侧OCR服务实例（懒初始化） */
+    private var ocrService: OcrService? = null
+
+    /**
+     * 端侧OCR优先、云端兜底的菜单识别
+     * 流程：
+     * 1. 尝试端侧OCR识别图片中的文字
+     * 2. 从OCR文本中提取菜名
+     * 3. 对每个菜名调用云端API获取营养数据
+     * 4. 若端侧OCR失败或提取菜名不足，回退到云端图片识别
+     *
+     * @param imageUri 图片URI
+     * @param context Android Context
+     * @param userId 用户ID（可选）
+     */
+    fun recognizeMenuWithEdgeFirst(imageUri: Uri, context: android.content.Context, userId: Int? = null) {
+        viewModelScope.launch {
+            _recognitionState.value = MenuRecognitionState.Loading
+
+            try {
+                // Step 1: 尝试端侧OCR
+                val edgeResult = tryEdgeOcr(imageUri, context)
+
+                if (edgeResult != null) {
+                    val dishNames = extractDishNames(edgeResult.texts.map { it.text })
+                    Log.d(TAG, "端侧OCR提取到${dishNames.size}个菜名: $dishNames")
+
+                    if (dishNames.size >= MIN_EDGE_OCR_DISHES) {
+                        // Step 2: 端侧OCR成功，为每个菜名获取营养数据
+                        val dishes = fetchNutritionForDishes(dishNames)
+
+                        if (dishes.isNotEmpty()) {
+                            Log.d(TAG, "端侧OCR成功，获取到${dishes.size}道菜品营养数据")
+                            _recognitionState.value = MenuRecognitionState.Success(
+                                dishes = dishes,
+                                source = RecognitionSource.EDGE
+                            )
+                            return@launch
+                        }
+                        Log.d(TAG, "端侧OCR提取到菜名但获取营养数据失败，回退到云端")
+                    } else {
+                        Log.d(TAG, "端侧OCR提取菜名不足(${dishNames.size}个)，回退到云端")
+                    }
+                } else {
+                    Log.d(TAG, "端侧OCR失败，回退到云端")
+                }
+
+                // Step 3: 回退到云端识别
+                recognizeMenuCloud(imageUri, context, userId)
+            } catch (e: Exception) {
+                Log.e(TAG, "端侧OCR异常，回退到云端", e)
+                try {
+                    recognizeMenuCloud(imageUri, context, userId)
+                } catch (cloudError: Exception) {
+                    _recognitionState.value = MenuRecognitionState.Error(
+                        "识别失败：${cloudError.message ?: "未知错误"}"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 尝试端侧OCR识别
+     * @return OcrResult 或 null（初始化/识别失败时）
+     */
+    private suspend fun tryEdgeOcr(imageUri: Uri, context: android.content.Context): OcrResult? {
+        return try {
+            // 懒初始化OCR服务
+            if (ocrService == null) {
+                ocrService = OcrService(context.applicationContext)
+            }
+            val service = ocrService!!
+
+            if (service.state is OcrServiceState.NotReady) {
+                Log.d(TAG, "正在初始化端侧OCR...")
+                service.initialize()
+            }
+
+            if (service.state !is OcrServiceState.Ready) {
+                Log.w(TAG, "端侧OCR服务状态异常: ${service.state}")
+                return null
+            }
+
+            // 加载Bitmap
+            val bitmap = loadBitmapFromUri(imageUri, context) ?: return null
+
+            val result = service.recognizeText(bitmap)
+            bitmap.recycle()
+
+            Log.d(TAG, "端侧OCR完成: ${result.texts.size}行文本, 耗时${result.totalTimeMs}ms")
+
+            if (result.isSuccess && result.texts.isNotEmpty()) result else null
+        } catch (e: Exception) {
+            Log.e(TAG, "端侧OCR异常: ${e.message}", e)
+            null
+        }
+    }
+
+    /**
+     * 云端菜单图片识别（原有逻辑提取为独立方法）
+     */
+    private suspend fun recognizeMenuCloud(
+        imageUri: Uri,
+        context: android.content.Context,
+        userId: Int? = null
+    ) {
+        val imagePart = createImagePart(imageUri, context)
+            ?: run {
+                _recognitionState.value = MenuRecognitionState.Error("无法读取图片文件")
+                return
+            }
+
+        val userIdBody = userId?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val response = RetrofitClient.apiService.recognizeMenu(imagePart, userIdBody)
+
+        if (response.code == 200 && response.data?.dishes != null) {
+            _recognitionState.value = MenuRecognitionState.Success(
+                dishes = response.data.dishes,
+                source = RecognitionSource.CLOUD
+            )
+        } else {
+            _recognitionState.value = MenuRecognitionState.Error(
+                response.message ?: "云端识别失败，请稍后重试"
+            )
+        }
+    }
+
+    /**
+     * 批量获取菜品营养数据（并发请求）
+     * @param dishNames 菜名列表
+     * @return 带营养数据的DishItem列表
+     */
+    private suspend fun fetchNutritionForDishes(dishNames: List<String>): List<DishItem> {
+        return supervisorScope {
+            dishNames.map { name ->
+                async {
+                    try {
+                        val response = RetrofitClient.apiService.analyzeFoodNutrition(
+                            FoodRequest(foodName = name)
+                        )
+                        if (response.success && response.data != null) {
+                            DishItem(
+                                name = response.data.name,
+                                calories = response.data.calories,
+                                protein = response.data.protein,
+                                fat = response.data.fat,
+                                carbs = response.data.carbs,
+                                isRecommended = true,
+                                reason = response.data.recommendation
+                            )
+                        } else null
+                    } catch (e: Exception) {
+                        Log.w(TAG, "获取菜品[$name]营养数据失败: ${e.message}")
+                        null
+                    }
+                }
+            }.awaitAll().filterNotNull()
+        }
+    }
+
+    /**
+     * 从URI加载Bitmap
+     */
+    private fun loadBitmapFromUri(uri: Uri, context: android.content.Context): Bitmap? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream.close()
+            bitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "加载图片失败: ${e.message}", e)
+            null
+        }
+    }
 
     /**
      * 分析菜品营养成分

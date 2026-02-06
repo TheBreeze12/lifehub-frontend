@@ -38,6 +38,7 @@ import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
 import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.MenuRecognitionState
+import com.example.lifehub.viewmodel.RecognitionSource
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -101,9 +102,9 @@ fun CameraPage(navController: NavController) {
                 ImagePreviewScreen(
                         imageUri = capturedImageUri!!,
                         onConfirm = {
-                                // 调用API识别菜单（传递userId以保存结果）
+                                // 端侧OCR优先、云端兜底识别菜单
                                 capturedImageUri?.let { uri ->
-                                        foodViewModel.recognizeMenu(uri, context, userId)
+                                        foodViewModel.recognizeMenuWithEdgeFirst(uri, context, userId)
                                         showPreview = false
                                 }
                         },
@@ -220,12 +221,44 @@ fun CameraPage(navController: NavController) {
                                         if (recognitionState is MenuRecognitionState.Success &&
                                                         userId != null
                                         ) {
-                                                Text(
-                                                        text =
-                                                                "共识别${(recognitionState as MenuRecognitionState.Success).dishes.size}道菜品",
-                                                        fontSize = 12.sp,
-                                                        color = Color(0xFF9CA3AF)
-                                                )
+                                                val successState = recognitionState as MenuRecognitionState.Success
+                                                Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                        // 识别来源标识
+                                                        Surface(
+                                                                shape = RoundedCornerShape(12.dp),
+                                                                color = if (successState.source == RecognitionSource.EDGE)
+                                                                        Color(0xFFDCFCE7) else Color(0xFFDBEAFE)
+                                                        ) {
+                                                                Row(
+                                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                                        verticalAlignment = Alignment.CenterVertically,
+                                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                                ) {
+                                                                        Icon(
+                                                                                imageVector = if (successState.source == RecognitionSource.EDGE)
+                                                                                        Icons.Default.PhoneAndroid else Icons.Default.Cloud,
+                                                                                contentDescription = null,
+                                                                                modifier = Modifier.size(12.dp),
+                                                                                tint = if (successState.source == RecognitionSource.EDGE)
+                                                                                        Color(0xFF16A34A) else Color(0xFF2563EB)
+                                                                        )
+                                                                        Text(
+                                                                                text = successState.source.displayName,
+                                                                                fontSize = 10.sp,
+                                                                                color = if (successState.source == RecognitionSource.EDGE)
+                                                                                        Color(0xFF16A34A) else Color(0xFF2563EB)
+                                                                        )
+                                                                }
+                                                        }
+                                                        Text(
+                                                                text = "共${successState.dishes.size}道",
+                                                                fontSize = 12.sp,
+                                                                color = Color(0xFF9CA3AF)
+                                                        )
+                                                }
                                         }
                                 }
 
