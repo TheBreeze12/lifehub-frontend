@@ -195,3 +195,8 @@ coverage/
 # 功能需求文档（不上传到GitHub）
 功能需求清单.md
 功能实现对比.md
+
+# ONNX模型文件（太大，不上传）
+*.onnx
+*.ort
+app/src/main/assets/models/ppocr_keys_v1.txt
