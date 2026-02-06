@@ -194,6 +194,16 @@ interface ApiService {
                 @GET("/api/weather/by-plan")
                 suspend fun getWeatherByPlan(@Query("planId") planId: Int): WeatherResponse
 
+        // ==================== 天气动态调整 Plan B 服务 (Phase 33) ====================
+
+        /**
+         * 获取运动计划的Plan B（天气动态调整方案） GET /api/trip/plan-b/{plan_id}
+         * @param planId 运动计划ID
+         * @return Plan B数据（含天气评估和室内替代方案）
+         */
+        @GET("/api/trip/plan-b/{plan_id}")
+        suspend fun getPlanB(@Path("plan_id") planId: Int): PlanBResponse
+
         // ==================== 餐前餐后对比服务 ====================
 
         /**

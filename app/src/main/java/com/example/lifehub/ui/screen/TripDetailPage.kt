@@ -27,9 +27,11 @@ import com.example.lifehub.data.WeatherData
 import com.example.lifehub.network.RetrofitClient
 import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.components.AMapComposeView
+import com.example.lifehub.ui.components.PlanBSection
 import com.example.lifehub.ui.components.RouteOverlay
 import com.example.lifehub.ui.components.routesToPolylines
 import com.example.lifehub.ui.theme.*
+import com.example.lifehub.viewmodel.PlanBState
 import com.example.lifehub.viewmodel.RoutesState
 import com.example.lifehub.viewmodel.TripViewModel
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +53,9 @@ fun TripDetailPage(
         // Phase 24: 收集路径状态
         val routesState by tripViewModel.routesState.collectAsState()
         val selectedRouteIndex by tripViewModel.selectedRouteIndex.collectAsState()
+        
+        // Phase 33: Plan B 状态
+        val planBState by tripViewModel.planBState.collectAsState()
         
         // Phase 24: 是否显示地图
         var showMapView by remember { mutableStateOf(false) }
@@ -78,6 +83,13 @@ fun TripDetailPage(
                                         } catch (_: Exception) {
                                                 // 保持静默失败，UI使用默认占位
                                         }
+                                }
+                        }
+                        // Phase 33: 自动拉取Plan B（天气动态调整）
+                        LaunchedEffect(tripId) {
+                                val id = tripId.toIntOrNull()
+                                if (id != null) {
+                                        tripViewModel.fetchPlanB(id)
                                 }
                         }
                         // 将行程数据转换为UI需要的格式
@@ -140,6 +152,18 @@ fun TripDetailPage(
                                                                         ),
                                                                 destination = tripPlan.destination
                                                                                 ?: "运动区域"
+                                                        )
+                                                }
+
+                                                // Phase 33: 天气预警与Plan B展示区域
+                                                item {
+                                                        PlanBSection(
+                                                                planBState = planBState,
+                                                                onRetry = {
+                                                                        tripId.toIntOrNull()?.let {
+                                                                                tripViewModel.fetchPlanB(it)
+                                                                        }
+                                                                }
                                                         )
                                                 }
 

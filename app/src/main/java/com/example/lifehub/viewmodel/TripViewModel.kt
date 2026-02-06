@@ -42,6 +42,10 @@ class TripViewModel : ViewModel() {
     private val _selectedRouteIndex = MutableStateFlow(0)
     val selectedRouteIndex: StateFlow<Int> = _selectedRouteIndex.asStateFlow()
 
+    // Phase 33: Plan B（天气动态调整）状态
+    private val _planBState = MutableStateFlow<PlanBState>(PlanBState.Idle)
+    val planBState: StateFlow<PlanBState> = _planBState.asStateFlow()
+
     /**
      * 生成运动计划
      * @param userId 用户ID
@@ -291,6 +295,36 @@ class TripViewModel : ViewModel() {
         _routesState.value = RoutesState.Idle
         _selectedRouteIndex.value = 0
     }
+
+    // ==================== Phase 33: Plan B 天气动态调整方法 ====================
+
+    /**
+     * 获取运动计划的Plan B（天气动态调整方案）
+     * @param planId 运动计划ID
+     */
+    fun fetchPlanB(planId: Int) {
+        viewModelScope.launch {
+            _planBState.value = PlanBState.Loading
+
+            try {
+                val response = apiService.getPlanB(planId)
+
+                if (response.code == 200 && response.data != null) {
+                    _planBState.value = PlanBState.Success(response.data)
+                } else {
+                    _planBState.value =
+                            PlanBState.Error(response.message ?: "获取天气调整方案失败")
+                }
+            } catch (e: Exception) {
+                _planBState.value = PlanBState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
+    /** 重置Plan B状态 */
+    fun resetPlanBState() {
+        _planBState.value = PlanBState.Idle
+    }
 }
 
 /** 生成行程状态 */
@@ -339,4 +373,12 @@ sealed class RoutesState {
     object Loading : RoutesState()
     data class Success(val data: RoutesResponseData) : RoutesState()
     data class Error(val message: String) : RoutesState()
+}
+
+/** Phase 33: Plan B（天气动态调整）状态 */
+sealed class PlanBState {
+    object Idle : PlanBState()
+    object Loading : PlanBState()
+    data class Success(val data: PlanBData) : PlanBState()
+    data class Error(val message: String) : PlanBState()
 }
