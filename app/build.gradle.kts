@@ -94,6 +94,9 @@ dependencies {
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation("com.patrykandpatrick.vico:core:1.13.1")
     
+    // ONNX Runtime - Phase 29: 端侧AI推理
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
+    
     // 高德地图SDK - Phase 23: 地图SDK集成
     // 使用3D地图SDK（包名为com.amap.api.maps.*）
     // 注意：3dmap已内置location库，不能再单独依赖location，否则会类冲突
