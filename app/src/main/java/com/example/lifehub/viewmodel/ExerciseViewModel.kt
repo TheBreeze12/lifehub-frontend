@@ -1,0 +1,247 @@
+package com.example.lifehub.viewmodel
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.lifehub.data.ExerciseTrackingData
+import com.example.lifehub.data.ExerciseTrackingState
+import com.example.lifehub.data.ExerciseTrackingUtils
+import com.example.lifehub.data.TrackPoint
+import com.example.lifehub.services.LocationTrackingService
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/**
+ * 运动追踪ViewModel - Phase 27
+ *
+ * 管理运动追踪的完整生命周期：
+ * - 启动/暂停/恢复/停止追踪
+ * - 实时计算距离、配速、时间
+ * - 管理GPS位置更新
+ * - 估算热量消耗
+ */
+class ExerciseViewModel(application: Application) : AndroidViewModel(application) {
+
+    // 追踪状态
+    private val _trackingState = MutableStateFlow<ExerciseTrackingState>(ExerciseTrackingState.Idle)
+    val trackingState: StateFlow<ExerciseTrackingState> = _trackingState.asStateFlow()
+
+    // 实时追踪数据
+    private val _trackingData = MutableStateFlow(ExerciseTrackingData())
+    val trackingData: StateFlow<ExerciseTrackingData> = _trackingData.asStateFlow()
+
+    // 当前位置（用于地图定位）
+    private val _currentLocation = MutableStateFlow<TrackPoint?>(null)
+    val currentLocation: StateFlow<TrackPoint?> = _currentLocation.asStateFlow()
+
+    // 内部状态
+    private val trackPoints = mutableListOf<TrackPoint>()
+    private var startTime = 0L
+    private var pausedDuration = 0L
+    private var pauseStartTime = 0L
+    private var timerJob: Job? = null
+    private var locationService: LocationTrackingService? = null
+    private var exerciseType: String = "walking"
+    private var planId: Int? = null
+
+    /**
+     * 初始化位置服务
+     */
+    private fun ensureLocationService() {
+        if (locationService == null) {
+            locationService = LocationTrackingService(
+                context = getApplication(),
+                onLocationUpdate = { point -> onNewLocation(point) },
+                onError = { /* 静默处理，UI层通过状态判断 */ }
+            )
+        }
+    }
+
+    /**
+     * 开始运动追踪
+     * @param type 运动类型（walking/running/cycling等）
+     * @param associatedPlanId 关联的运动计划ID（可选）
+     */
+    fun startTracking(type: String = "walking", associatedPlanId: Int? = null) {
+        if (_trackingState.value is ExerciseTrackingState.Tracking) return
+
+        ensureLocationService()
+        exerciseType = type
+        planId = associatedPlanId
+        trackPoints.clear()
+        startTime = System.currentTimeMillis()
+        pausedDuration = 0L
+
+        _trackingData.value = ExerciseTrackingData(
+            exerciseType = exerciseType,
+            planId = planId
+        )
+
+        locationService?.startTracking()
+        startTimer()
+        _trackingState.value = ExerciseTrackingState.Tracking
+    }
+
+    /**
+     * 暂停追踪
+     */
+    fun pauseTracking() {
+        if (_trackingState.value !is ExerciseTrackingState.Tracking) return
+
+        pauseStartTime = System.currentTimeMillis()
+        locationService?.stopTracking()
+        timerJob?.cancel()
+        _trackingState.value = ExerciseTrackingState.Paused
+    }
+
+    /**
+     * 恢复追踪
+     */
+    fun resumeTracking() {
+        if (_trackingState.value !is ExerciseTrackingState.Paused) return
+
+        pausedDuration += System.currentTimeMillis() - pauseStartTime
+        ensureLocationService()
+        locationService?.startTracking()
+        startTimer()
+        _trackingState.value = ExerciseTrackingState.Tracking
+    }
+
+    /**
+     * 停止追踪并生成结果
+     */
+    fun stopTracking() {
+        val currentState = _trackingState.value
+        if (currentState !is ExerciseTrackingState.Tracking &&
+            currentState !is ExerciseTrackingState.Paused
+        ) return
+
+        locationService?.stopTracking()
+        timerJob?.cancel()
+
+        val totalDuration = calculateElapsedTime()
+        val totalDistance = ExerciseTrackingUtils.calculateTotalDistance(trackPoints.toList())
+        val avgPace = ExerciseTrackingUtils.calculatePace(totalDistance, totalDuration)
+
+        _trackingState.value = ExerciseTrackingState.Completed(
+            totalDistance = totalDistance,
+            totalDuration = totalDuration,
+            averagePace = avgPace,
+            trackPoints = trackPoints.toList()
+        )
+    }
+
+    /**
+     * 重置状态（返回空闲）
+     */
+    fun resetTracking() {
+        locationService?.stopTracking()
+        timerJob?.cancel()
+        trackPoints.clear()
+        startTime = 0L
+        pausedDuration = 0L
+        _trackingState.value = ExerciseTrackingState.Idle
+        _trackingData.value = ExerciseTrackingData()
+        _currentLocation.value = null
+    }
+
+    /**
+     * 获取初始位置用于地图定位
+     */
+    fun fetchInitialLocation() {
+        ensureLocationService()
+        locationService?.getLastKnownLocation { point ->
+            point?.let { _currentLocation.value = it }
+        }
+    }
+
+    /**
+     * 处理新的位置更新
+     */
+    private fun onNewLocation(point: TrackPoint) {
+        _currentLocation.value = point
+        trackPoints.add(point)
+        updateTrackingData()
+    }
+
+    /**
+     * 更新实时追踪数据
+     */
+    private fun updateTrackingData() {
+        val points = trackPoints.toList()
+        val totalDistance = ExerciseTrackingUtils.calculateTotalDistance(points)
+        val elapsed = calculateElapsedTime()
+        val avgPace = ExerciseTrackingUtils.calculatePace(totalDistance, elapsed)
+        val avgSpeed = ExerciseTrackingUtils.calculateSpeed(totalDistance, elapsed)
+
+        // 计算当前配速（使用最近2个点）
+        val currentPace = if (points.size >= 2) {
+            val last = points.last()
+            val prev = points[points.size - 2]
+            val segmentDist = ExerciseTrackingUtils.calculateDistance(
+                prev.latitude, prev.longitude,
+                last.latitude, last.longitude
+            )
+            val segmentTime = last.timestamp - prev.timestamp
+            ExerciseTrackingUtils.calculatePace(segmentDist, segmentTime)
+        } else 0.0
+
+        // 估算热量
+        val durationMinutes = elapsed / 60000.0
+        val calories = ExerciseTrackingUtils.estimateCalories(exerciseType, durationMinutes)
+
+        _trackingData.value = ExerciseTrackingData(
+            trackPoints = points,
+            totalDistance = totalDistance,
+            elapsedTime = elapsed,
+            currentPace = currentPace,
+            averagePace = avgPace,
+            currentSpeed = avgSpeed,
+            caloriesBurned = calories,
+            planId = planId,
+            exerciseType = exerciseType
+        )
+    }
+
+    /**
+     * 启动计时器（每秒更新时间）
+     */
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000L)
+                val elapsed = calculateElapsedTime()
+                val currentData = _trackingData.value
+                val durationMinutes = elapsed / 60000.0
+                val calories = ExerciseTrackingUtils.estimateCalories(exerciseType, durationMinutes)
+                _trackingData.value = currentData.copy(
+                    elapsedTime = elapsed,
+                    caloriesBurned = calories
+                )
+            }
+        }
+    }
+
+    /**
+     * 计算有效运动时间（排除暂停时间）
+     */
+    private fun calculateElapsedTime(): Long {
+        if (startTime == 0L) return 0L
+        val now = System.currentTimeMillis()
+        val currentPauseDuration = if (_trackingState.value is ExerciseTrackingState.Paused) {
+            now - pauseStartTime
+        } else 0L
+        return now - startTime - pausedDuration - currentPauseDuration
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        locationService?.stopTracking()
+        timerJob?.cancel()
+    }
+}

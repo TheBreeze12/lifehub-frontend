@@ -30,4 +30,12 @@ sealed class Screen(val route: String) {
 
     // Phase 17: 热量收支统计页面
     object Stats : Screen("stats")
+
+    // Phase 27: 运动轨迹追踪
+    object ExerciseTracking : Screen("exercise_tracking?planId={planId}&exerciseType={exerciseType}") {
+        fun createRoute(planId: Int? = null, exerciseType: String = "walking"): String {
+            val pid = planId?.toString() ?: ""
+            return "exercise_tracking?planId=$pid&exerciseType=$exerciseType"
+        }
+    }
 }

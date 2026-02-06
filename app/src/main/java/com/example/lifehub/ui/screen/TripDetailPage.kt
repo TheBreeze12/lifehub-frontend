@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.WeatherData
 import com.example.lifehub.network.RetrofitClient
+import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.components.AMapComposeView
 import com.example.lifehub.ui.components.RouteOverlay
 import com.example.lifehub.ui.components.routesToPolylines
@@ -160,6 +161,21 @@ fun TripDetailPage(
                                                                                 maxTimeMinutes = 60,
                                                                                 exerciseType = "walking",
                                                                                 weightKg = 70.0
+                                                                        )
+                                                                }
+                                                        )
+                                                }
+
+                                                // Phase 27: 开始运动按钮
+                                                item {
+                                                        StartExerciseButton(
+                                                                tripId = tripId,
+                                                                onStartExercise = {
+                                                                        navController.navigate(
+                                                                                Screen.ExerciseTracking.createRoute(
+                                                                                        planId = tripId.toIntOrNull(),
+                                                                                        exerciseType = "walking"
+                                                                                )
                                                                         )
                                                                 }
                                                         )
@@ -772,6 +788,42 @@ data class TripItemData(
         val duration: String?,
         val notes: String?
 )
+
+// ==================== Phase 27: 开始运动按钮 ====================
+
+/**
+ * 开始运动按钮 - Phase 27
+ * 从运动计划详情页跳转到运动轨迹追踪页
+ */
+@Composable
+private fun StartExerciseButton(
+        tripId: String,
+        onStartExercise: () -> Unit
+) {
+        Button(
+                onClick = onStartExercise,
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                        containerColor = ForestGreen,
+                        contentColor = Color.White
+                )
+        ) {
+                Icon(
+                        imageVector = Icons.Default.DirectionsRun,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                        text = "开始运动",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                )
+        }
+}
 
 // ==================== Phase 24: 地图和路线展示组件 ====================
 

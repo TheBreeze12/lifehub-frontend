@@ -156,6 +156,31 @@ fun MainNavigation() {
             composable(Screen.Stats.route) {
                 StatsPage(navController = navController)
             }
+
+            // Phase 27: 运动轨迹追踪
+            composable(
+                route = Screen.ExerciseTracking.route,
+                arguments = listOf(
+                    androidx.navigation.navArgument("planId") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = ""
+                        nullable = true
+                    },
+                    androidx.navigation.navArgument("exerciseType") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "walking"
+                    }
+                )
+            ) { backStackEntry ->
+                val planIdStr = backStackEntry.arguments?.getString("planId")
+                val planId = planIdStr?.toIntOrNull()
+                val exerciseType = backStackEntry.arguments?.getString("exerciseType") ?: "walking"
+                ExerciseTrackingPage(
+                    navController = navController,
+                    planId = planId,
+                    exerciseType = exerciseType
+                )
+            }
         }
     }
 }
