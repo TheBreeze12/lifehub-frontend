@@ -38,4 +38,19 @@ sealed class Screen(val route: String) {
             return "exercise_tracking?planId=$pid&exerciseType=$exerciseType"
         }
     }
+
+    // Phase 28: 运动结算展示
+    object ExerciseSummary : Screen("exercise_summary?planId={planId}&exerciseType={exerciseType}&distance={distance}&duration={duration}&calories={calories}&pace={pace}") {
+        fun createRoute(
+            planId: Int? = null,
+            exerciseType: String = "walking",
+            distance: Double = 0.0,
+            duration: Long = 0L,
+            calories: Double = 0.0,
+            pace: Double = 0.0
+        ): String {
+            val pid = planId?.toString() ?: ""
+            return "exercise_summary?planId=$pid&exerciseType=$exerciseType&distance=$distance&duration=$duration&calories=$calories&pace=$pace"
+        }
+    }
 }

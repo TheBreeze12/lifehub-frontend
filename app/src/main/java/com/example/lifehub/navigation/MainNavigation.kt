@@ -181,6 +181,55 @@ fun MainNavigation() {
                     exerciseType = exerciseType
                 )
             }
+
+            // Phase 28: 运动结算展示
+            composable(
+                route = Screen.ExerciseSummary.route,
+                arguments = listOf(
+                    androidx.navigation.navArgument("planId") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = ""
+                        nullable = true
+                    },
+                    androidx.navigation.navArgument("exerciseType") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "walking"
+                    },
+                    androidx.navigation.navArgument("distance") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "0.0"
+                    },
+                    androidx.navigation.navArgument("duration") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "0"
+                    },
+                    androidx.navigation.navArgument("calories") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "0.0"
+                    },
+                    androidx.navigation.navArgument("pace") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "0.0"
+                    }
+                )
+            ) { backStackEntry ->
+                val planIdStr = backStackEntry.arguments?.getString("planId")
+                val planId = planIdStr?.toIntOrNull()
+                val exerciseType = backStackEntry.arguments?.getString("exerciseType") ?: "walking"
+                val distance = backStackEntry.arguments?.getString("distance")?.toDoubleOrNull() ?: 0.0
+                val duration = backStackEntry.arguments?.getString("duration")?.toLongOrNull() ?: 0L
+                val calories = backStackEntry.arguments?.getString("calories")?.toDoubleOrNull() ?: 0.0
+                val pace = backStackEntry.arguments?.getString("pace")?.toDoubleOrNull() ?: 0.0
+                ExerciseSummaryPage(
+                    navController = navController,
+                    planId = planId,
+                    exerciseType = exerciseType,
+                    distance = distance,
+                    duration = duration,
+                    calories = calories,
+                    pace = pace
+                )
+            }
         }
     }
 }

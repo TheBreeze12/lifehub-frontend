@@ -271,6 +271,18 @@ interface ApiService {
          */
         @POST("/api/trip/routes")
         suspend fun generateRoutes(@Body request: GenerateRoutesRequest): GenerateRoutesResponse
+
+        // ==================== 运动记录服务 (Phase 28) ====================
+
+        /**
+         * 新增运动记录 POST /api/exercise/record
+         * @param request 运动记录数据
+         * @return 创建结果（包含达成率）
+         */
+        @POST("/api/exercise/record")
+        suspend fun createExerciseRecord(
+                @Body request: CreateExerciseRecordRequest
+        ): CreateExerciseRecordResponse
 }
 
 

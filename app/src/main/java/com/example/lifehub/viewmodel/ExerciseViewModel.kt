@@ -3,10 +3,13 @@ package com.example.lifehub.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.lifehub.data.CreateExerciseRecordRequest
 import com.example.lifehub.data.ExerciseTrackingData
 import com.example.lifehub.data.ExerciseTrackingState
 import com.example.lifehub.data.ExerciseTrackingUtils
+import com.example.lifehub.data.SaveExerciseState
 import com.example.lifehub.data.TrackPoint
+import com.example.lifehub.network.RetrofitClient
 import com.example.lifehub.services.LocationTrackingService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,6 +40,10 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     // 当前位置（用于地图定位）
     private val _currentLocation = MutableStateFlow<TrackPoint?>(null)
     val currentLocation: StateFlow<TrackPoint?> = _currentLocation.asStateFlow()
+
+    // Phase 28: 保存运动记录状态
+    private val _saveState = MutableStateFlow<SaveExerciseState>(SaveExerciseState.Idle)
+    val saveState: StateFlow<SaveExerciseState> = _saveState.asStateFlow()
 
     // 内部状态
     private val trackPoints = mutableListOf<TrackPoint>()
@@ -237,6 +244,71 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
             now - pauseStartTime
         } else 0L
         return now - startTime - pausedDuration - currentPauseDuration
+    }
+
+    // ==================== Phase 28: 运动记录保存 ====================
+
+    /**
+     * 保存运动记录到后端
+     * @param userId 用户ID
+     * @param actualCalories 实际消耗热量（kcal）
+     * @param actualDuration 实际运动时长（分钟）
+     * @param distance 运动距离（米）
+     * @param exerciseDate 运动日期（YYYY-MM-DD）
+     * @param startedAt 开始时间（ISO格式，可选）
+     * @param endedAt 结束时间（ISO格式，可选）
+     * @param plannedCalories 计划热量（可选）
+     * @param plannedDuration 计划时长（可选）
+     * @param notes 运动备注（可选）
+     */
+    fun saveExerciseRecord(
+        userId: Int,
+        actualCalories: Double,
+        actualDuration: Int,
+        distance: Double?,
+        exerciseDate: String,
+        startedAt: String? = null,
+        endedAt: String? = null,
+        plannedCalories: Double? = null,
+        plannedDuration: Int? = null,
+        notes: String? = null
+    ) {
+        viewModelScope.launch {
+            _saveState.value = SaveExerciseState.Saving
+            try {
+                val request = CreateExerciseRecordRequest(
+                    userId = userId,
+                    planId = planId,
+                    exerciseType = exerciseType,
+                    actualCalories = actualCalories,
+                    actualDuration = actualDuration,
+                    distance = distance,
+                    exerciseDate = exerciseDate,
+                    startedAt = startedAt,
+                    endedAt = endedAt,
+                    plannedCalories = plannedCalories,
+                    plannedDuration = plannedDuration,
+                    notes = notes
+                )
+                val response = RetrofitClient.apiService.createExerciseRecord(request)
+                if (response.code == 200 && response.data != null) {
+                    _saveState.value = SaveExerciseState.Success(response.data.id)
+                } else {
+                    _saveState.value = SaveExerciseState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                _saveState.value = SaveExerciseState.Error(
+                    e.message ?: "保存运动记录失败"
+                )
+            }
+        }
+    }
+
+    /**
+     * 重置保存状态
+     */
+    fun resetSaveState() {
+        _saveState.value = SaveExerciseState.Idle
     }
 
     override fun onCleared() {

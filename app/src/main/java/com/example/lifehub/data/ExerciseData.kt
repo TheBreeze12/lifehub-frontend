@@ -53,6 +53,76 @@ data class ExerciseTrackingData(
  * 运动追踪工具类 - Phase 27
  * 计算距离、配速等
  */
+// ==================== Phase 28: 运动结算数据模型 ====================
+
+/**
+ * 保存运动记录的状态 - Phase 28
+ */
+sealed class SaveExerciseState {
+    /** 空闲 */
+    object Idle : SaveExerciseState()
+    /** 保存中 */
+    object Saving : SaveExerciseState()
+    /** 保存成功 */
+    data class Success(val recordId: Int) : SaveExerciseState()
+    /** 保存失败 */
+    data class Error(val message: String) : SaveExerciseState()
+}
+
+/**
+ * 新增运动记录请求 - Phase 28
+ * 与后端 POST /api/exercise/record 对应
+ */
+data class CreateExerciseRecordRequest(
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("plan_id") val planId: Int? = null,
+    @SerializedName("exercise_type") val exerciseType: String = "walking",
+    @SerializedName("actual_calories") val actualCalories: Double,
+    @SerializedName("actual_duration") val actualDuration: Int,
+    @SerializedName("distance") val distance: Double? = null,
+    @SerializedName("route_data") val routeData: String? = null,
+    @SerializedName("planned_calories") val plannedCalories: Double? = null,
+    @SerializedName("planned_duration") val plannedDuration: Int? = null,
+    @SerializedName("exercise_date") val exerciseDate: String,
+    @SerializedName("started_at") val startedAt: String? = null,
+    @SerializedName("ended_at") val endedAt: String? = null,
+    @SerializedName("notes") val notes: String? = null
+)
+
+/**
+ * 运动记录响应数据 - Phase 28
+ * 与后端 ExerciseRecordData 对应
+ */
+data class ExerciseRecordResponseData(
+    @SerializedName("id") val id: Int,
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("plan_id") val planId: Int? = null,
+    @SerializedName("exercise_type") val exerciseType: String,
+    @SerializedName("actual_calories") val actualCalories: Double,
+    @SerializedName("actual_duration") val actualDuration: Int,
+    @SerializedName("distance") val distance: Double? = null,
+    @SerializedName("route_data") val routeData: String? = null,
+    @SerializedName("planned_calories") val plannedCalories: Double? = null,
+    @SerializedName("planned_duration") val plannedDuration: Int? = null,
+    @SerializedName("exercise_date") val exerciseDate: String,
+    @SerializedName("started_at") val startedAt: String? = null,
+    @SerializedName("ended_at") val endedAt: String? = null,
+    @SerializedName("notes") val notes: String? = null,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("calories_achievement") val caloriesAchievement: Double? = null,
+    @SerializedName("duration_achievement") val durationAchievement: Double? = null
+)
+
+/**
+ * 新增运动记录响应 - Phase 28
+ * 与后端 CreateExerciseRecordResponse 对应
+ */
+data class CreateExerciseRecordResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: ExerciseRecordResponseData? = null
+)
+
 object ExerciseTrackingUtils {
 
     /**

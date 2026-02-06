@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.ExerciseTrackingState
 import com.example.lifehub.data.ExerciseTrackingUtils
+import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.components.AMapComposeView
 import com.example.lifehub.ui.components.LatLngPoint
 import com.example.lifehub.ui.components.PolylineData
@@ -151,8 +152,18 @@ fun ExerciseTrackingPage(
                 onResume = { exerciseViewModel.resumeTracking() },
                 onStop = { exerciseViewModel.stopTracking() },
                 onFinish = {
-                    exerciseViewModel.resetTracking()
-                    navController.popBackStack()
+                    // Phase 28: 导航到结算页，传递运动数据
+                    val completed = trackingState as? ExerciseTrackingState.Completed
+                    navController.navigate(
+                        Screen.ExerciseSummary.createRoute(
+                            planId = planId,
+                            exerciseType = exerciseType,
+                            distance = completed?.totalDistance ?: trackingData.totalDistance,
+                            duration = completed?.totalDuration ?: trackingData.elapsedTime,
+                            calories = trackingData.caloriesBurned,
+                            pace = completed?.averagePace ?: trackingData.averagePace
+                        )
+                    )
                 }
             )
         }
