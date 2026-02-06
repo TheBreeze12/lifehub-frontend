@@ -91,6 +91,11 @@ class DietRepository(private val dietRecordDao: DietRecordDao) {
         dietRecordDao.deleteByServerId(serverId)
     }
 
+    /** 获取所有记录Entity（用于Phase 35端云同步冲突检测） */
+    suspend fun getAllEntities(userId: Int): List<DietRecordEntity> {
+        return dietRecordDao.getRecordsByUserId(userId)
+    }
+
     /** 获取未同步的记录（用于Phase 35端云同步） */
     suspend fun getUnsyncedRecords(userId: Int): List<DietRecordEntity> {
         return dietRecordDao.getUnsyncedRecords(userId)
