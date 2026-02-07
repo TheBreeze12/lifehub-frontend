@@ -246,6 +246,11 @@ fun MainNavigation() {
                 ExerciseHistoryPage(navController = navController)
             }
 
+            // Phase 56: AI调用日志
+            composable(Screen.AiCallLog.route) {
+                AiCallLogPage(navController = navController)
+            }
+
             // Phase 47: 离线运动包管理
             composable(
                 route = Screen.OfflinePackage.route,

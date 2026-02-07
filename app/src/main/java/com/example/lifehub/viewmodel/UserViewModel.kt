@@ -45,6 +45,14 @@ class UserViewModel : ViewModel() {
     private val _forgetDataState = MutableStateFlow<ForgetDataState>(ForgetDataState.Idle)
     val forgetDataState: StateFlow<ForgetDataState> = _forgetDataState.asStateFlow()
 
+    // Phase 56: AI调用日志状态
+    private val _aiCallLogState = MutableStateFlow<AiCallLogState>(AiCallLogState.Idle)
+    val aiCallLogState: StateFlow<AiCallLogState> = _aiCallLogState.asStateFlow()
+
+    // Phase 56: AI调用统计状态
+    private val _aiCallLogStatsState = MutableStateFlow<AiCallLogStatsState>(AiCallLogStatsState.Idle)
+    val aiCallLogStatsState: StateFlow<AiCallLogStatsState> = _aiCallLogStatsState.asStateFlow()
+
     /** Phase 55: 一键遗忘 - 删除用户所有云端数据 */
     fun forgetUserData(userId: Int) {
         viewModelScope.launch {
@@ -71,6 +79,46 @@ class UserViewModel : ViewModel() {
     /** Phase 55: 重置遗忘状态 */
     fun resetForgetDataState() {
         _forgetDataState.value = ForgetDataState.Idle
+    }
+
+    /** Phase 56: 获取AI调用日志列表 */
+    fun getAiCallLogs(userId: Int, callType: String? = null, limit: Int = 50, offset: Int = 0) {
+        viewModelScope.launch {
+            _aiCallLogState.value = AiCallLogState.Loading
+
+            try {
+                val response = apiService.getAiCallLogs(userId, callType, limit, offset)
+
+                if (response.code == 200 && response.data != null) {
+                    _aiCallLogState.value = AiCallLogState.Success(response.data)
+                } else {
+                    _aiCallLogState.value =
+                            AiCallLogState.Error(response.message ?: "获取AI调用日志失败")
+                }
+            } catch (e: Exception) {
+                _aiCallLogState.value = AiCallLogState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
+    /** Phase 56: 获取AI调用统计 */
+    fun getAiCallLogStats(userId: Int) {
+        viewModelScope.launch {
+            _aiCallLogStatsState.value = AiCallLogStatsState.Loading
+
+            try {
+                val response = apiService.getAiCallLogStats(userId)
+
+                if (response.code == 200 && response.data != null) {
+                    _aiCallLogStatsState.value = AiCallLogStatsState.Success(response.data)
+                } else {
+                    _aiCallLogStatsState.value =
+                            AiCallLogStatsState.Error(response.message ?: "获取AI调用统计失败")
+                }
+            } catch (e: Exception) {
+                _aiCallLogStatsState.value = AiCallLogStatsState.Error(e.message ?: "网络请求失败")
+            }
+        }
     }
 
     /** Phase 48: 获取健康目标达成率 */
@@ -366,4 +414,20 @@ sealed class ForgetDataState {
     object Loading : ForgetDataState()
     data class Success(val totalDeleted: Int, val message: String) : ForgetDataState()
     data class Error(val message: String) : ForgetDataState()
+}
+
+/** Phase 56: AI调用日志状态 */
+sealed class AiCallLogState {
+    object Idle : AiCallLogState()
+    object Loading : AiCallLogState()
+    data class Success(val data: AiCallLogListData) : AiCallLogState()
+    data class Error(val message: String) : AiCallLogState()
+}
+
+/** Phase 56: AI调用统计状态 */
+sealed class AiCallLogStatsState {
+    object Idle : AiCallLogStatsState()
+    object Loading : AiCallLogStatsState()
+    data class Success(val data: AiCallLogStatsData) : AiCallLogStatsState()
+    data class Error(val message: String) : AiCallLogStatsState()
 }

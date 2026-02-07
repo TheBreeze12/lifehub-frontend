@@ -289,6 +289,62 @@ fun ProfilePage(
                 }
             }
 
+            // Phase 56: AI调用日志入口
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                    Text(
+                            text = "数据与日志",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Row(
+                                modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            navController.navigate(Screen.AiCallLog.route)
+                                        }
+                                        .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                    Icons.Filled.History,
+                                    contentDescription = null,
+                                    tint = SkyBlue,
+                                    modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                        "AI调用记录",
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp,
+                                        color = TextPrimary
+                                )
+                                Text(
+                                        "查看AI服务调用历史和数据上传日志",
+                                        fontSize = 12.sp,
+                                        color = TextSecondary
+                                )
+                            }
+                            Icon(
+                                    Icons.Filled.ChevronRight,
+                                    contentDescription = null,
+                                    tint = TextTertiary
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 Spacer(modifier = Modifier.height(32.dp))
 

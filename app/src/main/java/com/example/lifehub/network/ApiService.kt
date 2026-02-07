@@ -402,6 +402,34 @@ interface ApiService {
         suspend fun downloadOfflinePackage(
                 @Path("package_id") packageId: String
         ): okhttp3.ResponseBody
+
+        // ==================== Phase 56: AI调用日志 ====================
+
+        /**
+         * 获取用户AI调用日志列表 GET /api/user/ai-logs
+         * @param userId 用户ID
+         * @param callType 调用类型过滤（可选）
+         * @param limit 返回数量限制
+         * @param offset 偏移量
+         * @return AI调用日志列表
+         */
+        @GET("/api/user/ai-logs")
+        suspend fun getAiCallLogs(
+                @Query("user_id") userId: Int,
+                @Query("call_type") callType: String? = null,
+                @Query("limit") limit: Int = 50,
+                @Query("offset") offset: Int = 0
+        ): AiCallLogResponse
+
+        /**
+         * 获取用户AI调用统计 GET /api/user/ai-logs/stats
+         * @param userId 用户ID
+         * @return AI调用统计数据
+         */
+        @GET("/api/user/ai-logs/stats")
+        suspend fun getAiCallLogStats(
+                @Query("user_id") userId: Int
+        ): AiCallLogStatsResponse
 }
 
 
