@@ -310,6 +310,38 @@ interface ApiService {
                 @Body request: CreateExerciseRecordRequest
         ): CreateExerciseRecordResponse
 
+        // ==================== 运动历史记录服务 (Phase 49) ====================
+
+        /**
+         * 查询运动记录列表 GET /api/exercise/records
+         * @param userId 用户ID
+         * @param exerciseDate 按日期筛选（YYYY-MM-DD格式，可选）
+         * @param exerciseType 按运动类型筛选（可选）
+         * @param limit 返回数量限制（默认50）
+         * @param offset 偏移量（默认0）
+         * @return 运动记录列表
+         */
+        @GET("/api/exercise/records")
+        suspend fun getExerciseRecords(
+                @Query("userId") userId: Int,
+                @Query("exercise_date") exerciseDate: String? = null,
+                @Query("exercise_type") exerciseType: String? = null,
+                @Query("limit") limit: Int = 50,
+                @Query("offset") offset: Int = 0
+        ): ExerciseRecordListResponse
+
+        /**
+         * 查询运动记录详情 GET /api/exercise/record/{record_id}
+         * @param recordId 运动记录ID
+         * @param userId 用户ID（用于权限校验）
+         * @return 运动记录详情
+         */
+        @GET("/api/exercise/record/{record_id}")
+        suspend fun getExerciseRecordDetail(
+                @Path("record_id") recordId: Int,
+                @Query("userId") userId: Int
+        ): ExerciseRecordDetailResponse
+
         // ==================== 健康目标达成率服务 (Phase 48) ====================
 
         /**

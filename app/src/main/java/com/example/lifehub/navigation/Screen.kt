@@ -60,6 +60,9 @@ sealed class Screen(val route: String) {
     // Phase 48: 健康目标达成情况
     object GoalProgress : Screen("goal_progress")
 
+    // Phase 49: 运动历史记录
+    object ExerciseHistory : Screen("exercise_history")
+
     // Phase 47: 离线运动包管理
     object OfflinePackage : Screen("offline_package?planId={planId}") {
         fun createRoute(planId: Int? = null): String {

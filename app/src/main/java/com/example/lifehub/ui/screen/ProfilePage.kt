@@ -454,8 +454,18 @@ private fun StatsCards(navController: NavController, tripCount: Int, dietRecordC
                 iconTint = Color(0xFF10B981),
                 onClick = { navController.navigate(Screen.GoalProgress.route) }
         )
+        // Phase 49: 运动历史记录入口
+        StatCard(
+                modifier = Modifier.weight(1f),
+                value = "🏃",
+                label = "运动历史",
+                gradientColors =
+                        listOf(Color(0xFF6366F1).copy(alpha = 0.15f), Color(0xFF818CF8).copy(alpha = 0.1f)),
+                iconTint = Color(0xFF6366F1),
+                onClick = { navController.navigate(Screen.ExerciseHistory.route) }
+        )
         // 占位保持对齐
-        Spacer(modifier = Modifier.weight(2f))
+        Spacer(modifier = Modifier.weight(1f))
     }
 }
 

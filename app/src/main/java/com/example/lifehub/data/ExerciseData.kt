@@ -123,6 +123,94 @@ data class CreateExerciseRecordResponse(
     @SerializedName("data") val data: ExerciseRecordResponseData? = null
 )
 
+// ==================== Phase 49: 运动历史记录数据模型 ====================
+
+/**
+ * 运动记录列表响应 - Phase 49
+ * 与后端 GET /api/exercise/records 对应
+ */
+data class ExerciseRecordListResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: List<ExerciseRecordResponseData> = emptyList(),
+    @SerializedName("total") val total: Int = 0
+)
+
+/**
+ * 运动记录详情响应 - Phase 49
+ * 与后端 GET /api/exercise/record/{record_id} 对应
+ */
+data class ExerciseRecordDetailResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: ExerciseRecordResponseData? = null
+)
+
+/**
+ * 运动历史加载状态 - Phase 49
+ */
+sealed class ExerciseHistoryState {
+    /** 空闲 */
+    object Idle : ExerciseHistoryState()
+    /** 加载中 */
+    object Loading : ExerciseHistoryState()
+    /** 加载成功 */
+    data class Success(
+        val records: List<ExerciseRecordResponseData>,
+        val total: Int
+    ) : ExerciseHistoryState()
+    /** 加载失败 */
+    data class Error(val message: String) : ExerciseHistoryState()
+}
+
+/**
+ * 运动记录详情加载状态 - Phase 49
+ */
+sealed class ExerciseDetailState {
+    /** 空闲 */
+    object Idle : ExerciseDetailState()
+    /** 加载中 */
+    object Loading : ExerciseDetailState()
+    /** 加载成功 */
+    data class Success(val record: ExerciseRecordResponseData) : ExerciseDetailState()
+    /** 加载失败 */
+    data class Error(val message: String) : ExerciseDetailState()
+}
+
+/**
+ * 运动类型工具类 - Phase 49
+ * 提供运动类型的中文名称和图标映射
+ */
+object ExerciseTypeUtils {
+    /** 运动类型中文名称映射 */
+    fun getTypeLabel(type: String): String = when (type) {
+        "walking" -> "散步"
+        "running" -> "跑步"
+        "cycling" -> "骑行"
+        "jogging" -> "慢跑"
+        "hiking" -> "徒步"
+        "swimming" -> "游泳"
+        "gym" -> "健身房"
+        "indoor" -> "室内运动"
+        "outdoor" -> "户外运动"
+        else -> type
+    }
+
+    /** 运动类型对应的emoji */
+    fun getTypeEmoji(type: String): String = when (type) {
+        "walking" -> "🚶"
+        "running" -> "🏃"
+        "cycling" -> "🚴"
+        "jogging" -> "🏃"
+        "hiking" -> "🥾"
+        "swimming" -> "🏊"
+        "gym" -> "🏋️"
+        "indoor" -> "🏠"
+        "outdoor" -> "🌳"
+        else -> "🏅"
+    }
+}
+
 object ExerciseTrackingUtils {
 
     /**

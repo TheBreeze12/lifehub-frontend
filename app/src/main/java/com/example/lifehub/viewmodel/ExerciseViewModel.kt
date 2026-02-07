@@ -7,6 +7,8 @@ import com.example.lifehub.data.ActivityRecognitionResult
 import com.example.lifehub.data.ActivityRecognitionState
 import com.example.lifehub.data.ActivityRecognitionUtils
 import com.example.lifehub.data.CreateExerciseRecordRequest
+import com.example.lifehub.data.ExerciseDetailState
+import com.example.lifehub.data.ExerciseHistoryState
 import com.example.lifehub.data.ExerciseTrackingData
 import com.example.lifehub.data.ExerciseTrackingState
 import com.example.lifehub.data.ExerciseTrackingUtils
@@ -342,6 +344,90 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
      */
     fun resetSaveState() {
         _saveState.value = SaveExerciseState.Idle
+    }
+
+    // ==================== Phase 49: 运动历史记录 ====================
+
+    // 运动历史列表状态
+    private val _historyState = MutableStateFlow<ExerciseHistoryState>(ExerciseHistoryState.Idle)
+    val historyState: StateFlow<ExerciseHistoryState> = _historyState.asStateFlow()
+
+    // 运动记录详情状态
+    private val _detailState = MutableStateFlow<ExerciseDetailState>(ExerciseDetailState.Idle)
+    val detailState: StateFlow<ExerciseDetailState> = _detailState.asStateFlow()
+
+    /**
+     * 加载运动历史记录列表 - Phase 49
+     * @param userId 用户ID
+     * @param exerciseDate 按日期筛选（可选，YYYY-MM-DD）
+     * @param exerciseType 按运动类型筛选（可选）
+     * @param limit 返回数量限制
+     * @param offset 偏移量
+     */
+    fun loadExerciseHistory(
+        userId: Int,
+        exerciseDate: String? = null,
+        exerciseType: String? = null,
+        limit: Int = 50,
+        offset: Int = 0
+    ) {
+        viewModelScope.launch {
+            _historyState.value = ExerciseHistoryState.Loading
+            try {
+                val response = RetrofitClient.apiService.getExerciseRecords(
+                    userId = userId,
+                    exerciseDate = exerciseDate,
+                    exerciseType = exerciseType,
+                    limit = limit,
+                    offset = offset
+                )
+                if (response.code == 200) {
+                    _historyState.value = ExerciseHistoryState.Success(
+                        records = response.data,
+                        total = response.total
+                    )
+                } else {
+                    _historyState.value = ExerciseHistoryState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                _historyState.value = ExerciseHistoryState.Error(
+                    e.message ?: "加载运动历史记录失败"
+                )
+            }
+        }
+    }
+
+    /**
+     * 加载运动记录详情 - Phase 49
+     * @param recordId 运动记录ID
+     * @param userId 用户ID
+     */
+    fun loadExerciseDetail(recordId: Int, userId: Int) {
+        viewModelScope.launch {
+            _detailState.value = ExerciseDetailState.Loading
+            try {
+                val response = RetrofitClient.apiService.getExerciseRecordDetail(
+                    recordId = recordId,
+                    userId = userId
+                )
+                if (response.code == 200 && response.data != null) {
+                    _detailState.value = ExerciseDetailState.Success(response.data)
+                } else {
+                    _detailState.value = ExerciseDetailState.Error(response.message)
+                }
+            } catch (e: Exception) {
+                _detailState.value = ExerciseDetailState.Error(
+                    e.message ?: "加载运动记录详情失败"
+                )
+            }
+        }
+    }
+
+    /**
+     * 重置运动详情状态 - Phase 49
+     */
+    fun resetDetailState() {
+        _detailState.value = ExerciseDetailState.Idle
     }
 
     // ==================== Phase 43: Activity Recognition ====================

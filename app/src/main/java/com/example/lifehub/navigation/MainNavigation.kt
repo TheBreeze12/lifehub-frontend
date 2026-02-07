@@ -241,6 +241,11 @@ fun MainNavigation() {
                 GoalProgressPage(navController = navController)
             }
 
+            // Phase 49: 运动历史记录
+            composable(Screen.ExerciseHistory.route) {
+                ExerciseHistoryPage(navController = navController)
+            }
+
             // Phase 47: 离线运动包管理
             composable(
                 route = Screen.OfflinePackage.route,
