@@ -33,6 +33,7 @@ import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.TripViewModel
 import com.example.lifehub.viewmodel.UserViewModel
+import com.example.lifehub.viewmodel.ForgetDataState
 
 /** 个人中心页 - MVP版本 用户偏好设置、饮食和行程统计 */
 @Composable
@@ -291,6 +292,22 @@ fun ProfilePage(
             item {
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // Phase 55: 一键遗忘按钮
+                ForgetDataSection(
+                        userId = userId.value,
+                        viewModel = viewModel,
+                        onForgetSuccess = {
+                            UserSession.logout()
+                            isLoggedIn.value = false
+                            userId.value = null
+                            nickname.value = "健康达人"
+                        }
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 // 退出登录按钮
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     Button(
@@ -512,6 +529,247 @@ private fun StatCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ForgetDataSection(
+        userId: Int?,
+        viewModel: UserViewModel,
+        onForgetSuccess: () -> Unit
+) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var showSecondConfirmDialog by remember { mutableStateOf(false) }
+    val forgetDataState by viewModel.forgetDataState.collectAsState()
+
+    // 处理删除成功后的回调
+    LaunchedEffect(forgetDataState) {
+        if (forgetDataState is ForgetDataState.Success) {
+            onForgetSuccess()
+        }
+    }
+
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Text(
+                text = "数据管理",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextSecondary,
+                modifier = Modifier.padding(horizontal = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                            imageVector = Icons.Default.DeleteForever,
+                            contentDescription = null,
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(24.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                                text = "一键遗忘",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
+                        )
+                        Text(
+                                text = "彻底删除云端所有数据，此操作不可逆",
+                                fontSize = 11.sp,
+                                color = TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                when (forgetDataState) {
+                    is ForgetDataState.Loading -> {
+                        Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    color = Color(0xFFEF4444),
+                                    strokeWidth = 3.dp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                    text = "正在删除数据...",
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
+                            )
+                        }
+                    }
+                    is ForgetDataState.Success -> {
+                        val state = forgetDataState as ForgetDataState.Success
+                        Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFFF0FFF4)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                        text = "✓ ${state.message}",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF16A34A)
+                                )
+                                Text(
+                                        text = "共删除 ${state.totalDeleted} 条记录",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary
+                                )
+                            }
+                        }
+                    }
+                    is ForgetDataState.Error -> {
+                        val state = forgetDataState as ForgetDataState.Error
+                        Text(
+                                text = "删除失败: ${state.message}",
+                                fontSize = 12.sp,
+                                color = Color(0xFFEF4444)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                                onClick = { viewModel.resetForgetDataState() },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("重试", fontSize = 13.sp)
+                        }
+                    }
+                    else -> {
+                        OutlinedButton(
+                                onClick = { showConfirmDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = Color(0xFFEF4444)
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(
+                                        1.dp, Color(0xFFEF4444)
+                                )
+                        ) {
+                            Icon(
+                                    imageVector = Icons.Default.DeleteForever,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("一键遗忘我的数据", fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 第一次确认弹窗
+    if (showConfirmDialog) {
+        AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                icon = {
+                    Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(36.dp)
+                    )
+                },
+                title = { Text("确认删除所有数据？", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column {
+                        Text(
+                                text = "此操作将永久删除您在云端的所有数据，包括：",
+                                fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("• 所有饮食记录", fontSize = 13.sp, color = TextSecondary)
+                        Text("• 所有运动计划和记录", fontSize = 13.sp, color = TextSecondary)
+                        Text("• 所有餐前餐后对比", fontSize = 13.sp, color = TextSecondary)
+                        Text("• 所有菜单识别记录", fontSize = 13.sp, color = TextSecondary)
+                        Text("• 账号和偏好设置", fontSize = 13.sp, color = TextSecondary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                                text = "⚠️ 此操作不可逆，数据删除后无法恢复！",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFEF4444)
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                            onClick = {
+                                showConfirmDialog = false
+                                showSecondConfirmDialog = true
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFEF4444)
+                            )
+                    ) {
+                        Text("继续", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { showConfirmDialog = false }) {
+                        Text("取消")
+                    }
+                }
+        )
+    }
+
+    // 第二次确认弹窗（二次确认）
+    if (showSecondConfirmDialog) {
+        AlertDialog(
+                onDismissRequest = { showSecondConfirmDialog = false },
+                title = {
+                    Text(
+                            "最终确认",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF4444)
+                    )
+                },
+                text = {
+                    Text(
+                            "您确定要删除所有数据吗？这是最后一次确认机会。",
+                            fontSize = 14.sp
+                    )
+                },
+                confirmButton = {
+                    Button(
+                            onClick = {
+                                showSecondConfirmDialog = false
+                                userId?.let { viewModel.forgetUserData(it) }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFEF4444)
+                            )
+                    ) {
+                        Text("确认删除", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { showSecondConfirmDialog = false }) {
+                        Text("取消")
+                    }
+                }
+        )
     }
 }
 

@@ -370,6 +370,16 @@ interface ApiService {
                 @Query("period") period: String = "week"
         ): ExerciseFrequencyResponse
 
+        // ==================== 一键遗忘服务 (Phase 55) ====================
+
+        /**
+         * 一键遗忘 - 删除用户所有数据 DELETE /api/user/data
+         * @param userId 用户ID
+         * @return 删除结果（含各表删除数量统计）
+         */
+        @DELETE("/api/user/data")
+        suspend fun deleteUserData(@Query("userId") userId: Int): DataForgetResponse
+
         // ==================== 离线运动包服务 (Phase 47) ====================
 
         /**

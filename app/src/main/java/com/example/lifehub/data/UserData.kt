@@ -159,3 +159,25 @@ data class UserRegistrationRequest(val nickname: String, val password: String)
 
 // UserRegistrationResponse.kt
 data class UserRegistrationResponse(val code: Int, val message: String, val userId: Int?)
+
+/** Phase 55: 一键遗忘响应 */
+data class DataForgetResponse(
+        @SerializedName("code") val code: Int,
+        @SerializedName("message") val message: String?,
+        @SerializedName("data") val data: DataForgetData?
+)
+
+data class DataForgetData(
+        @SerializedName("user_id") val userId: Int,
+        @SerializedName("nickname") val nickname: String?,
+        @SerializedName("deleted_counts") val deletedCounts: DeletedCounts?,
+        @SerializedName("total_deleted") val totalDeleted: Int
+)
+
+data class DeletedCounts(
+        @SerializedName("diet_records") val dietRecords: Int = 0,
+        @SerializedName("exercise_records") val exerciseRecords: Int = 0,
+        @SerializedName("meal_comparisons") val mealComparisons: Int = 0,
+        @SerializedName("menu_recognitions") val menuRecognitions: Int = 0,
+        @SerializedName("trip_plans") val tripPlans: Int = 0
+)

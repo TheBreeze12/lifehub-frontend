@@ -824,7 +824,39 @@ suspend fun getExerciseFrequency(
 
 ---
 
+### 一键遗忘（Phase 55）
+
+**Retrofit接口定义**:
+```kotlin
+// 一键遗忘 - 删除用户所有数据 DELETE /api/user/data
+@DELETE("/api/user/data")
+suspend fun deleteUserData(@Query("userId") userId: Int): DataForgetResponse
+```
+
+**请求参数**:
+| 参数名 | 类型 | 必填 | 说明                   |
+| ------ | ---- | ---- | ---------------------- |
+| userId | int  | 是   | 用户ID，必须大于0      |
+
+**响应数据模型**: `DataForgetResponse`
+- `code`: 状态码
+- `message`: 消息
+- `data`: `DataForgetData`
+  - `userId`: 被删除的用户ID
+  - `nickname`: 被删除用户的昵称
+  - `deletedCounts`: `DeletedCounts` - 各表删除数量统计
+    - `dietRecords`: 饮食记录数
+    - `exerciseRecords`: 运动记录数
+    - `mealComparisons`: 餐前餐后对比数
+    - `menuRecognitions`: 菜单识别记录数
+    - `tripPlans`: 运动计划数
+  - `totalDeleted`: 总计删除记录数
+
+**⚠️ 注意**: 此操作不可逆，删除后数据无法恢复。前端需实现二次确认弹窗。
+
+---
+
 **最后更新**: 2026-02-07  
-**文档版本**: v1.1.0  
-**对应后端版本**: v1.9.0
+**文档版本**: v1.2.0  
+**对应后端版本**: v1.10.0
 

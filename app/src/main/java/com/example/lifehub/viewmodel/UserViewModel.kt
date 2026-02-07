@@ -41,6 +41,38 @@ class UserViewModel : ViewModel() {
     private val _goalProgressState = MutableStateFlow<GoalProgressState>(GoalProgressState.Idle)
     val goalProgressState: StateFlow<GoalProgressState> = _goalProgressState.asStateFlow()
 
+    // Phase 55: 一键遗忘状态
+    private val _forgetDataState = MutableStateFlow<ForgetDataState>(ForgetDataState.Idle)
+    val forgetDataState: StateFlow<ForgetDataState> = _forgetDataState.asStateFlow()
+
+    /** Phase 55: 一键遗忘 - 删除用户所有云端数据 */
+    fun forgetUserData(userId: Int) {
+        viewModelScope.launch {
+            _forgetDataState.value = ForgetDataState.Loading
+
+            try {
+                val response = apiService.deleteUserData(userId)
+
+                if (response.code == 200 && response.data != null) {
+                    _forgetDataState.value = ForgetDataState.Success(
+                            totalDeleted = response.data.totalDeleted,
+                            message = response.message ?: "数据删除成功"
+                    )
+                } else {
+                    _forgetDataState.value =
+                            ForgetDataState.Error(response.message ?: "数据删除失败")
+                }
+            } catch (e: Exception) {
+                _forgetDataState.value = ForgetDataState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
+    /** Phase 55: 重置遗忘状态 */
+    fun resetForgetDataState() {
+        _forgetDataState.value = ForgetDataState.Idle
+    }
+
     /** Phase 48: 获取健康目标达成率 */
     fun getGoalProgress(userId: Int, days: Int = 7) {
         viewModelScope.launch {
@@ -326,4 +358,12 @@ sealed class GoalProgressState {
     object Loading : GoalProgressState()
     data class Success(val data: GoalProgressData) : GoalProgressState()
     data class Error(val message: String) : GoalProgressState()
+}
+
+/** Phase 55: 一键遗忘状态 */
+sealed class ForgetDataState {
+    object Idle : ForgetDataState()
+    object Loading : ForgetDataState()
+    data class Success(val totalDeleted: Int, val message: String) : ForgetDataState()
+    data class Error(val message: String) : ForgetDataState()
 }
