@@ -792,7 +792,39 @@ viewModelScope.launch {
 
 ---
 
-**最后更新**: 2026-01-27  
-**文档版本**: v1.0.0  
-**对应后端版本**: v1.0.0
+### 运动频率分析（Phase 51）
+
+**Retrofit接口定义**:
+```kotlin
+// 获取运动频率分析 GET /api/stats/exercise-frequency
+@GET("/api/stats/exercise-frequency")
+suspend fun getExerciseFrequency(
+        @Query("user_id") userId: Int,
+        @Query("period") period: String = "week"
+): ExerciseFrequencyResponse
+```
+
+**请求参数**:
+| 参数名  | 类型   | 必填 | 说明                                    |
+| ------- | ------ | ---- | --------------------------------------- |
+| user_id | int    | 是   | 用户ID                                  |
+| period  | string | 否   | 统计周期：week（默认）或 month          |
+
+**响应数据模型**: `ExerciseFrequencyResponse`
+- `code`: 状态码
+- `message`: 消息
+- `data`: `ExerciseFrequencyData`
+  - `userId`, `period`, `periodLabel`, `startDate`, `endDate`
+  - `totalDays`, `activeDays`, `totalExerciseCount`, `totalDuration`, `totalCalories`
+  - `avgFrequency`, `avgDurationPerSession`, `avgCaloriesPerSession`
+  - `dailyData`: `List<DailyExerciseFrequency>` - 每日运动频率明细
+  - `typeDistribution`: `List<ExerciseTypeDistribution>` - 运动类型分布
+  - `frequencyRating`: 评级（excellent/good/fair/insufficient）
+  - `frequencySuggestion`: 运动频率建议
+
+---
+
+**最后更新**: 2026-02-07  
+**文档版本**: v1.1.0  
+**对应后端版本**: v1.9.0
 

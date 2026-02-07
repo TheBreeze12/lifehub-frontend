@@ -20,11 +20,13 @@ import com.example.lifehub.data.StatsViewMode
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.ui.components.CalorieChart
 import com.example.lifehub.ui.components.CalorieSummaryCard
+import com.example.lifehub.ui.components.ExerciseFrequencyChart
 import com.example.lifehub.ui.components.NutrientRadarChart
 import com.example.lifehub.ui.components.NutrientSummaryCard
 import com.example.lifehub.ui.components.WeeklySummaryCard
 import com.example.lifehub.ui.theme.ForestGreen
 import com.example.lifehub.viewmodel.DailyStatsUiState
+import com.example.lifehub.viewmodel.ExerciseFrequencyUiState
 import com.example.lifehub.viewmodel.NutrientStatsUiState
 import com.example.lifehub.viewmodel.StatsViewModel
 import com.example.lifehub.viewmodel.WeeklyStatsUiState
@@ -45,6 +47,8 @@ fun StatsPage(
     val weeklyStatsState by statsViewModel.weeklyStatsState.collectAsState()
     val chartDataPoints by statsViewModel.chartDataPoints.collectAsState()
     val nutrientStatsState by statsViewModel.nutrientStatsState.collectAsState()  // Phase 18
+    val exerciseFrequencyState by statsViewModel.exerciseFrequencyState.collectAsState()  // Phase 51
+    val frequencyPeriod by statsViewModel.frequencyPeriod.collectAsState()  // Phase 51
 
     // 获取当前用户ID
     val userId = UserSession.getUserId() ?: 1
@@ -109,6 +113,17 @@ fun StatsPage(
                     onRetry = { statsViewModel.getWeeklyCalorieStats(userId) }
                 )
             }
+
+            // Phase 51: 运动频率分析区域
+            ExerciseFrequencySection(
+                state = exerciseFrequencyState,
+                currentPeriod = frequencyPeriod,
+                onPeriodChange = { period ->
+                    statsViewModel.setFrequencyPeriod(period)
+                    statsViewModel.getExerciseFrequency(userId, period)
+                },
+                onRetry = { statsViewModel.getExerciseFrequency(userId) }
+            )
         }
     }
 }
@@ -610,5 +625,96 @@ private fun NutrientAdviceItem(
             style = MaterialTheme.typography.bodySmall,
             color = statusColor
         )
+    }
+}
+
+// ============== Phase 51: 运动频率分析区域 ==============
+
+/**
+ * Phase 51: 运动频率分析展示区域
+ * 包含周期切换、频率图表和建议
+ */
+@Composable
+private fun ExerciseFrequencySection(
+    state: ExerciseFrequencyUiState,
+    currentPeriod: String,
+    onPeriodChange: (String) -> Unit,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 标题行 + 周期切换
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "运动频率分析",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Row {
+                FilterChip(
+                    selected = currentPeriod == "week",
+                    onClick = { onPeriodChange("week") },
+                    label = { Text("周") },
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+                FilterChip(
+                    selected = currentPeriod == "month",
+                    onClick = { onPeriodChange("month") },
+                    label = { Text("月") }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        when (state) {
+            is ExerciseFrequencyUiState.Idle,
+            is ExerciseFrequencyUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = ForestGreen)
+                }
+            }
+            is ExerciseFrequencyUiState.Success -> {
+                ExerciseFrequencyChart(data = state.data)
+            }
+            is ExerciseFrequencyUiState.Error -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onRetry,
+                        colors = ButtonDefaults.buttonColors(containerColor = ForestGreen)
+                    ) {
+                        Text("重试")
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }

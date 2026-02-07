@@ -356,6 +356,20 @@ interface ApiService {
                 @Query("days") days: Int = 7
         ): GoalProgressResponse
 
+        // ==================== 运动频率分析服务 (Phase 51) ====================
+
+        /**
+         * 获取运动频率分析 GET /api/stats/exercise-frequency
+         * @param userId 用户ID
+         * @param period 统计周期：week=最近一周，month=最近一个月
+         * @return 运动频率分析数据（含每日明细、类型分布、评级建议）
+         */
+        @GET("/api/stats/exercise-frequency")
+        suspend fun getExerciseFrequency(
+                @Query("user_id") userId: Int,
+                @Query("period") period: String = "week"
+        ): ExerciseFrequencyResponse
+
         // ==================== 离线运动包服务 (Phase 47) ====================
 
         /**

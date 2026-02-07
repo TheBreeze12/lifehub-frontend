@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.lifehub.data.ChartDataPoint
 import com.example.lifehub.data.DailyCalorieStats
 import com.example.lifehub.data.DailyNutrientStats
+import com.example.lifehub.data.ExerciseFrequencyData
 import com.example.lifehub.data.StatsViewMode
 import com.example.lifehub.data.WeeklyCalorieStats
 import com.example.lifehub.network.RetrofitClient
@@ -46,6 +47,14 @@ sealed class NutrientStatsUiState {
     data class Error(val message: String) : NutrientStatsUiState()
 }
 
+/** Phase 51: 运动频率分析UI状态 */
+sealed class ExerciseFrequencyUiState {
+    object Idle : ExerciseFrequencyUiState()
+    object Loading : ExerciseFrequencyUiState()
+    data class Success(val data: ExerciseFrequencyData) : ExerciseFrequencyUiState()
+    data class Error(val message: String) : ExerciseFrequencyUiState()
+}
+
 class StatsViewModel : ViewModel() {
 
     private val _dailyStatsState = MutableStateFlow<DailyStatsUiState>(DailyStatsUiState.Idle)
@@ -66,6 +75,13 @@ class StatsViewModel : ViewModel() {
     // Phase 18: 营养素统计状态
     private val _nutrientStatsState = MutableStateFlow<NutrientStatsUiState>(NutrientStatsUiState.Idle)
     val nutrientStatsState: StateFlow<NutrientStatsUiState> = _nutrientStatsState.asStateFlow()
+
+    // Phase 51: 运动频率分析状态
+    private val _exerciseFrequencyState = MutableStateFlow<ExerciseFrequencyUiState>(ExerciseFrequencyUiState.Idle)
+    val exerciseFrequencyState: StateFlow<ExerciseFrequencyUiState> = _exerciseFrequencyState.asStateFlow()
+
+    private val _frequencyPeriod = MutableStateFlow("week")
+    val frequencyPeriod: StateFlow<String> = _frequencyPeriod.asStateFlow()
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -242,8 +258,12 @@ class StatsViewModel : ViewModel() {
             StatsViewMode.DAILY -> {
                 getDailyCalorieStats(userId)
                 getDailyNutrientStats(userId)  // Phase 18: 同时获取营养素统计
+                getExerciseFrequency(userId)   // Phase 51: 同时获取运动频率
             }
-            StatsViewMode.WEEKLY -> getWeeklyCalorieStats(userId)
+            StatsViewMode.WEEKLY -> {
+                getWeeklyCalorieStats(userId)
+                getExerciseFrequency(userId)   // Phase 51: 同时获取运动频率
+            }
         }
     }
 
@@ -289,7 +309,49 @@ class StatsViewModel : ViewModel() {
         _dailyStatsState.value = DailyStatsUiState.Idle
         _weeklyStatsState.value = WeeklyStatsUiState.Idle
         _nutrientStatsState.value = NutrientStatsUiState.Idle  // Phase 18
+        _exerciseFrequencyState.value = ExerciseFrequencyUiState.Idle  // Phase 51
         _chartDataPoints.value = emptyList()
+    }
+
+    // ============== Phase 51: 运动频率分析 ==============
+
+    /**
+     * 设置运动频率统计周期
+     */
+    fun setFrequencyPeriod(period: String) {
+        _frequencyPeriod.value = period
+    }
+
+    /**
+     * 获取运动频率分析
+     * @param userId 用户ID
+     * @param period 统计周期（week/month）
+     */
+    fun getExerciseFrequency(userId: Int, period: String = _frequencyPeriod.value) {
+        viewModelScope.launch {
+            _exerciseFrequencyState.value = ExerciseFrequencyUiState.Loading
+
+            try {
+                val response = RetrofitClient.apiService.getExerciseFrequency(userId, period)
+
+                if (response.code == 200 && response.data != null) {
+                    _exerciseFrequencyState.value = ExerciseFrequencyUiState.Success(response.data)
+                } else {
+                    _exerciseFrequencyState.value = ExerciseFrequencyUiState.Error(
+                        response.message ?: "获取运动频率分析失败"
+                    )
+                }
+            } catch (e: Exception) {
+                _exerciseFrequencyState.value = ExerciseFrequencyUiState.Error(
+                    when {
+                        e.message?.contains("Unable to resolve host") == true ->
+                            "网络连接失败，请检查后端服务是否启动"
+                        e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                        else -> "获取运动频率分析失败：${e.message ?: "未知错误"}"
+                    }
+                )
+            }
+        }
     }
 
     /**

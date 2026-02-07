@@ -129,3 +129,52 @@ data class RadarChartDataPoint(
     /** 归一化值（相对于建议最大值） */
     val normalizedValue: Float get() = (value / recommendedMax).coerceIn(0.0, 1.5).toFloat()
 }
+
+// ============== Phase 51: 运动频率分析数据模型 ==============
+
+/** 单日运动频率数据 */
+data class DailyExerciseFrequency(
+    @SerializedName("date") val date: String,
+    @SerializedName("count") val count: Int = 0,
+    @SerializedName("total_duration") val totalDuration: Int = 0,
+    @SerializedName("total_calories") val totalCalories: Double = 0.0,
+    @SerializedName("exercise_types") val exerciseTypes: List<String> = emptyList()
+)
+
+/** 运动类型分布 */
+data class ExerciseTypeDistribution(
+    @SerializedName("exercise_type") val exerciseType: String,
+    @SerializedName("label") val label: String,
+    @SerializedName("count") val count: Int = 0,
+    @SerializedName("total_duration") val totalDuration: Int = 0,
+    @SerializedName("total_calories") val totalCalories: Double = 0.0,
+    @SerializedName("percentage") val percentage: Double = 0.0
+)
+
+/** 运动频率分析数据 */
+data class ExerciseFrequencyData(
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("period") val period: String,
+    @SerializedName("period_label") val periodLabel: String,
+    @SerializedName("start_date") val startDate: String,
+    @SerializedName("end_date") val endDate: String,
+    @SerializedName("total_days") val totalDays: Int = 0,
+    @SerializedName("active_days") val activeDays: Int = 0,
+    @SerializedName("total_exercise_count") val totalExerciseCount: Int = 0,
+    @SerializedName("total_duration") val totalDuration: Int = 0,
+    @SerializedName("total_calories") val totalCalories: Double = 0.0,
+    @SerializedName("avg_frequency") val avgFrequency: Double = 0.0,
+    @SerializedName("avg_duration_per_session") val avgDurationPerSession: Double = 0.0,
+    @SerializedName("avg_calories_per_session") val avgCaloriesPerSession: Double = 0.0,
+    @SerializedName("daily_data") val dailyData: List<DailyExerciseFrequency> = emptyList(),
+    @SerializedName("type_distribution") val typeDistribution: List<ExerciseTypeDistribution> = emptyList(),
+    @SerializedName("frequency_rating") val frequencyRating: String = "insufficient",
+    @SerializedName("frequency_suggestion") val frequencySuggestion: String = ""
+)
+
+/** 运动频率分析响应 */
+data class ExerciseFrequencyResponse(
+    @SerializedName("code") val code: Int,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: ExerciseFrequencyData?
+)
