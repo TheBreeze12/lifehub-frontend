@@ -112,6 +112,9 @@ dependencies {
     // Health Connect - Phase 44: 健康数据读写
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
     
+    // DataStore - Phase 53: 配置存储（替代SharedPreferences）
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
     // Coroutines Test - Phase 34: 测试协程
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     
