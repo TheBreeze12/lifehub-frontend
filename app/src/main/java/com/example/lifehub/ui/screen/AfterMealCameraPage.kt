@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -54,7 +55,9 @@ private val ForestGreen = Color(0xFF2D5A27)
 fun AfterMealCameraPage(navController: NavController, comparisonId: Int) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val foodViewModel: FoodViewModel = viewModel()
+    val foodViewModel: FoodViewModel = viewModel(
+            viewModelStoreOwner = context as ComponentActivity
+    )
 
     // 相机权限
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)

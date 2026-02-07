@@ -3,9 +3,16 @@ package com.example.lifehub.ui.components
 import android.graphics.Color
 import android.os.Bundle
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -120,7 +127,11 @@ fun AMapComposeView(
         }
 
         onDispose {
-            mapView.onDestroy()
+            try {
+                mapView.onDestroy()
+            } catch (e: Exception) {
+                // 静默处理地图销毁异常，避免闪退
+            }
         }
     }
 
@@ -143,7 +154,27 @@ fun AMapComposeView(
                 )
             }
             is AMapViewState.Error -> {
-                // 可以在这里显示错误UI
+                // 地图初始化失败时显示友好提示
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "🗺️",
+                        fontSize = 48.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "地图加载失败",
+                        color = ComposeColor.Gray,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = state.message,
+                        color = ComposeColor.LightGray,
+                        fontSize = 12.sp
+                    )
+                }
             }
             is AMapViewState.Success -> {
                 mapView?.let { mv ->

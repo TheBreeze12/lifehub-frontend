@@ -103,6 +103,14 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                         if (dishItem.fat < 10) tags.add("低脂")
                         if (dishItem.calories < 200) tags.add("低卡")
 
+                        // 基于菜名检测过敏原（8大类标准过敏原 + 用户自定义过敏原）
+                        val detectedAllergens = detectAllergensFromDishName(
+                                dishItem.name, userAllergens
+                        )
+                        val allergenReasoning = if (detectedAllergens.isNotEmpty()) {
+                                "菜品“${dishItem.name}”可能含有过敏原成分：${detectedAllergens.joinToString("、") { com.example.lifehub.ui.components.getAllergenDisplayName(it) }}。请根据个人情况谨慎食用。"
+                        } else null
+
                         NutritionData(
                                 name = dishItem.name,
                                 emoji = emoji,
@@ -113,8 +121,8 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 isRecommended = dishItem.isRecommended,
                                 tags = tags,
                                 aiReason = dishItem.reason ?: "暂无推荐理由",
-                                allergens = emptyList(),
-                                allergenReasoning = null
+                                allergens = detectedAllergens,
+                                allergenReasoning = allergenReasoning
                         )
                 } else {
                         // 如果找不到，使用默认数据
@@ -481,6 +489,47 @@ fun NutritionItem(label: String, value: String, color: Color) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = label, fontSize = 10.sp, color = Color(0xFF9CA3AF))
         }
+}
+
+/**
+ * 基于菜品名称检测潜在过敏原
+ * 匹配8大类标准过敏原关键词 + 用户自定义过敏原
+ * @param dishName 菜品名称
+ * @param userAllergens 用户设置的过敏原列表
+ * @return 检测到的过敏原代码列表
+ */
+fun detectAllergensFromDishName(dishName: String, userAllergens: List<String>): List<String> {
+        val detected = mutableSetOf<String>()
+
+        // 8大类标准过敏原关键词映射
+        val standardAllergenKeywords = mapOf(
+                "milk" to listOf("牛奶", "奶酪", "芝士", "黄油", "奶油", "乳", "酸奶", "奶"),
+                "egg" to listOf("鸡蛋", "蛋", "蛋糕", "蛋挞"),
+                "fish" to listOf("鱼", "三文鱼", "鳕鱼", "鲈鱼", "鲫鱼", "鲤鱼", "鳗", "带鱼"),
+                "shellfish" to listOf("虾", "蟹", "螃蟹", "龙虾", "贝", "蛤", "蚝", "牡蛎", "扇贝", "海鲜"),
+                "peanut" to listOf("花生"),
+                "tree_nut" to listOf("杏仁", "核桃", "腰果", "坚果", "榛子", "开心果", "松子"),
+                "wheat" to listOf("面", "馒头", "饺子", "面条", "馄饨", "包子", "饼", "面包", "馍", "麦"),
+                "soy" to listOf("豆腐", "豆浆", "大豆", "毛豆", "黄豆", "豆干", "豆皮")
+        )
+
+        // 检测标准过敏原
+        for ((code, keywords) in standardAllergenKeywords) {
+                if (keywords.any { dishName.contains(it) }) {
+                        detected.add(code)
+                }
+        }
+
+        // 检测用户自定义过敏原（直接匹配菜品名称中是否包含用户过敏原关键词）
+        for (allergen in userAllergens) {
+                if (allergen.isNotBlank() && dishName.contains(allergen)) {
+                        // 尝试将用户过敏原映射到标准代码
+                        val code = com.example.lifehub.ui.components.normalizeAllergenForMatching(allergen)
+                        detected.add(code)
+                }
+        }
+
+        return detected.toList()
 }
 
 /** 营养数据类 */

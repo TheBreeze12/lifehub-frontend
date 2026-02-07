@@ -35,6 +35,7 @@ import com.example.lifehub.viewmodel.PlanBState
 import com.example.lifehub.viewmodel.RoutesState
 import com.example.lifehub.viewmodel.TripViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** 运动计划详情页 - MVP版本 展示完整的运动计划时间表 */
@@ -44,6 +45,9 @@ fun TripDetailPage(
         navController: NavController,
         tripViewModel: TripViewModel = viewModel()
 ) {
+        val snackbarHostState = remember { SnackbarHostState() }
+        val coroutineScope = rememberCoroutineScope()
+
         // 从ViewModel获取行程数据
         LaunchedEffect(tripId) { tripId.toIntOrNull()?.let { tripViewModel.getTripDetail(it) } }
 
@@ -117,11 +121,23 @@ fun TripDetailPage(
                         ) {
                                 Column(modifier = Modifier.fillMaxSize()) {
                                         // 顶部工具栏
+                                        SnackbarHost(
+                                                hostState = snackbarHostState,
+                                                modifier = Modifier.padding(top = 8.dp)
+                                        )
                                         TripDetailHeader(
                                                 title = tripPlan.title,
                                                 onBackClick = { navController.popBackStack() },
-                                                onDownloadClick = { /* TODO: 下载离线包 */},
-                                                onEditClick = { /* TODO: 编辑行程 */}
+                                                onDownloadClick = {
+                                                        coroutineScope.launch {
+                                                                snackbarHostState.showSnackbar("离线下载功能开发中，敬请期待")
+                                                        }
+                                                },
+                                                onEditClick = {
+                                                        coroutineScope.launch {
+                                                                snackbarHostState.showSnackbar("计划编辑功能开发中，敬请期待")
+                                                        }
+                                                }
                                         )
 
                                         LazyColumn(
@@ -176,14 +192,19 @@ fun TripDetailPage(
                                                                 selectedRouteIndex = selectedRouteIndex,
                                                                 onRouteSelected = { tripViewModel.selectRoute(it) },
                                                                 onGenerateRoutes = {
-                                                                        // 使用默认位置（北京）生成路径
-                                                                        // 实际应用中应使用用户真实位置
+                                                                        // 使用天气数据中的坐标（基于计划目的地解析），若无则使用默认位置
+                                                                        val lat = weatherData?.latitude ?: 39.9042
+                                                                        val lng = weatherData?.longitude ?: 116.4074
+                                                                        // 从行程节点提取目标热量和总时长
+                                                                        val totalCalories = tripPlan.items.sumOf { (it.cost ?: 0.0) }.coerceAtLeast(300.0)
+                                                                        val totalMinutes = tripPlan.items.sumOf { it.duration ?: 0 }.coerceAtLeast(60)
+                                                                        val mainType = tripPlan.items.firstOrNull()?.placeType ?: "walking"
                                                                         tripViewModel.generateRoutes(
-                                                                                startLat = 39.9042,
-                                                                                startLng = 116.4074,
-                                                                                targetCalories = 300.0,
-                                                                                maxTimeMinutes = 60,
-                                                                                exerciseType = "walking",
+                                                                                startLat = lat,
+                                                                                startLng = lng,
+                                                                                targetCalories = totalCalories,
+                                                                                maxTimeMinutes = totalMinutes,
+                                                                                exerciseType = mainType,
                                                                                 weightKg = 70.0
                                                                         )
                                                                 }

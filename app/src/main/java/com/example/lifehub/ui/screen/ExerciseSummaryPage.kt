@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import com.example.lifehub.data.ExerciseTrackingUtils
 import com.example.lifehub.data.SaveExerciseState
 import com.example.lifehub.data.UserSession
+import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.ExerciseViewModel
 import java.time.LocalDate
@@ -154,17 +155,21 @@ fun ExerciseSummaryPage(
             SaveSection(
                 saveState = saveState,
                 onSave = {
-                    val userId = UserSession.getUserId() ?: 1
-                    val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                    exerciseViewModel.saveExerciseRecord(
-                        userId = userId,
-                        actualCalories = calories,
-                        actualDuration = durationMinutes,
-                        distance = if (distance > 0) distance else null,
-                        exerciseDate = today,
-                        plannedCalories = null,
-                        plannedDuration = null
-                    )
+                    val userId = try {
+                        if (UserSession.isLoggedIn()) UserSession.getUserId() else null
+                    } catch (e: Exception) { null }
+                    if (userId != null) {
+                        val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                        exerciseViewModel.saveExerciseRecord(
+                            userId = userId,
+                            actualCalories = calories,
+                            actualDuration = durationMinutes,
+                            distance = if (distance > 0) distance else null,
+                            exerciseDate = today,
+                            plannedCalories = null,
+                            plannedDuration = null
+                        )
+                    }
                 },
                 onSaveSuccess = { response ->
                     caloriesAchievement = response.caloriesAchievement
@@ -175,10 +180,17 @@ fun ExerciseSummaryPage(
                 onFinish = {
                     exerciseViewModel.resetSaveState()
                     exerciseViewModel.resetTracking()
-                    navController.popBackStack(
-                        route = "home",
+                    // 安全返回首页：先尝试popBackStack，失败则直接导航
+                    val popped = navController.popBackStack(
+                        route = Screen.Home.route,
                         inclusive = false
                     )
+                    if (!popped) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 }
             )
 

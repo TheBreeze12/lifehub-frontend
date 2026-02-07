@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.AfterMealData
@@ -29,6 +32,7 @@ import com.example.lifehub.ui.components.MealComparisonResult
 import com.example.lifehub.viewmodel.AfterMealUploadState
 import com.example.lifehub.viewmodel.BeforeMealUploadState
 import com.example.lifehub.viewmodel.FoodViewModel
+import androidx.compose.ui.platform.LocalContext
 
 private val ForestGreen = Color(0xFF2D5A27)
 private val VitalOrange = Color(0xFFFF6B35)
@@ -46,7 +50,9 @@ private val TextSecondary = Color(0xFF8E8E93)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MealComparisonPage(navController: NavController) {
-    val foodViewModel: FoodViewModel = viewModel()
+    val foodViewModel: FoodViewModel = viewModel(
+            viewModelStoreOwner = LocalContext.current as ComponentActivity
+    )
     val beforeMealState by foodViewModel.beforeMealUploadState.collectAsState()
     val afterMealState by foodViewModel.afterMealUploadState.collectAsState()
     val comparisonRecord by foodViewModel.currentComparisonRecord.collectAsState()
@@ -88,6 +94,7 @@ fun MealComparisonPage(navController: NavController) {
                 modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
                         .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
