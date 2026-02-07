@@ -309,6 +309,29 @@ interface ApiService {
         suspend fun createExerciseRecord(
                 @Body request: CreateExerciseRecordRequest
         ): CreateExerciseRecordResponse
+
+        // ==================== 离线运动包服务 (Phase 47) ====================
+
+        /**
+         * 生成离线运动包 POST /api/trip/offline-package
+         * @param request 包含plan_id的请求
+         * @return 离线包生成结果（含package_id、文件大小等）
+         */
+        @POST("/api/trip/offline-package")
+        suspend fun generateOfflinePackage(
+                @Body request: OfflinePackageRequest
+        ): OfflinePackageResponse
+
+        /**
+         * 下载离线运动包 GET /api/trip/offline-package/{package_id}
+         * @param packageId 离线包唯一标识
+         * @return 离线包ZIP文件（二进制流）
+         */
+        @Streaming
+        @GET("/api/trip/offline-package/{package_id}")
+        suspend fun downloadOfflinePackage(
+                @Path("package_id") packageId: String
+        ): okhttp3.ResponseBody
 }
 
 

@@ -235,6 +235,25 @@ fun MainNavigation() {
             composable(Screen.Recommendation.route) {
                 RecommendationPage(navController = navController)
             }
+
+            // Phase 47: 离线运动包管理
+            composable(
+                route = Screen.OfflinePackage.route,
+                arguments = listOf(
+                    androidx.navigation.navArgument("planId") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = ""
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val planIdStr = backStackEntry.arguments?.getString("planId")
+                val planId = planIdStr?.toIntOrNull()
+                OfflinePackagePage(
+                    navController = navController,
+                    planId = planId
+                )
+            }
         }
     }
 }

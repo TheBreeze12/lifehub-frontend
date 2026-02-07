@@ -129,9 +129,12 @@ fun TripDetailPage(
                                                 title = tripPlan.title,
                                                 onBackClick = { navController.popBackStack() },
                                                 onDownloadClick = {
-                                                        coroutineScope.launch {
-                                                                snackbarHostState.showSnackbar("离线下载功能开发中，敬请期待")
-                                                        }
+                                                        // Phase 47: 导航到离线包管理页面
+                                                        navController.navigate(
+                                                                Screen.OfflinePackage.createRoute(
+                                                                        planId = tripId.toIntOrNull()
+                                                                )
+                                                        )
                                                 },
                                                 onEditClick = {
                                                         coroutineScope.launch {

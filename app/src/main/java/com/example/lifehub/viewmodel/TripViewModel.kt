@@ -3,11 +3,16 @@ package com.example.lifehub.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lifehub.data.*
+import com.example.lifehub.data.local.OfflinePackageManager
 import com.example.lifehub.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 /** 行程ViewModel - 管理行程相关的状态和API调用 */
 class TripViewModel : ViewModel() {
@@ -45,6 +50,26 @@ class TripViewModel : ViewModel() {
     // Phase 33: Plan B（天气动态调整）状态
     private val _planBState = MutableStateFlow<PlanBState>(PlanBState.Idle)
     val planBState: StateFlow<PlanBState> = _planBState.asStateFlow()
+
+    // Phase 47: 离线运动包状态
+    private val _offlinePackageState = MutableStateFlow<OfflinePackageState>(OfflinePackageState.Idle)
+    val offlinePackageState: StateFlow<OfflinePackageState> = _offlinePackageState.asStateFlow()
+
+    // Phase 47: 离线包列表状态
+    private val _offlinePackageListState = MutableStateFlow<OfflinePackageListState>(OfflinePackageListState.Idle)
+    val offlinePackageListState: StateFlow<OfflinePackageListState> = _offlinePackageListState.asStateFlow()
+
+    // Phase 47: 离线包管理器（延迟初始化，需要Context设置存储目录）
+    private var _offlinePackageManager: OfflinePackageManager? = null
+    val offlinePackageManager: OfflinePackageManager?
+        get() = _offlinePackageManager
+
+    /** Phase 47: 初始化离线包管理器 */
+    fun initOfflinePackageManager(storageDir: File) {
+        if (_offlinePackageManager == null) {
+            _offlinePackageManager = OfflinePackageManager(storageDir)
+        }
+    }
 
     /**
      * 生成运动计划
@@ -325,6 +350,122 @@ class TripViewModel : ViewModel() {
     fun resetPlanBState() {
         _planBState.value = PlanBState.Idle
     }
+
+    // ==================== Phase 47: 离线运动包方法 ====================
+
+    /**
+     * 生成并下载离线运动包
+     * 流程：1.请求服务端生成 -> 2.获取package_id -> 3.下载ZIP文件 -> 4.保存到本地
+     *
+     * @param planId 运动计划ID
+     * @param planTitle 计划标题（用于本地显示）
+     * @param planDestination 计划目的地（用于本地显示）
+     */
+    fun generateAndDownloadOfflinePackage(
+        planId: Int,
+        planTitle: String? = null,
+        planDestination: String? = null
+    ) {
+        val manager = _offlinePackageManager ?: run {
+            _offlinePackageState.value = OfflinePackageState.Error("离线包管理器未初始化")
+            return
+        }
+
+        viewModelScope.launch {
+            _offlinePackageState.value = OfflinePackageState.Generating
+
+            try {
+                // Step 1: 请求服务端生成离线包
+                val generateResponse = withContext(Dispatchers.IO) {
+                    apiService.generateOfflinePackage(OfflinePackageRequest(planId = planId))
+                }
+
+                if (generateResponse.code != 200 || generateResponse.data == null) {
+                    _offlinePackageState.value =
+                        OfflinePackageState.Error(generateResponse.message ?: "生成离线包失败")
+                    return@launch
+                }
+
+                val packageInfo = generateResponse.data
+                manager.savePackageInfo(packageInfo, planTitle, planDestination)
+                manager.updateStatus(packageInfo.packageId, OfflinePackageStatus.DOWNLOADING)
+                _offlinePackageState.value = OfflinePackageState.Downloading(0f)
+
+                // Step 2: 下载ZIP文件
+                val responseBody = withContext(Dispatchers.IO) {
+                    apiService.downloadOfflinePackage(packageInfo.packageId)
+                }
+
+                // Step 3: 保存到本地文件
+                val localPath = manager.getPackageFilePath(packageInfo.packageId)
+                withContext(Dispatchers.IO) {
+                    val totalBytes = responseBody.contentLength()
+                    val inputStream = responseBody.byteStream()
+                    val outputStream = FileOutputStream(File(localPath))
+
+                    inputStream.use { input ->
+                        outputStream.use { output ->
+                            val buffer = ByteArray(8192)
+                            var bytesRead: Long = 0
+                            var read: Int
+
+                            while (input.read(buffer).also { read = it } != -1) {
+                                output.write(buffer, 0, read)
+                                bytesRead += read
+                                if (totalBytes > 0) {
+                                    val progress = bytesRead.toFloat() / totalBytes.toFloat()
+                                    manager.updateStatus(
+                                        packageInfo.packageId,
+                                        OfflinePackageStatus.DOWNLOADING,
+                                        progress = progress
+                                    )
+                                    _offlinePackageState.value = OfflinePackageState.Downloading(progress)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Step 4: 更新状态为已下载
+                manager.updateStatus(
+                    packageInfo.packageId,
+                    OfflinePackageStatus.DOWNLOADED,
+                    localFilePath = localPath
+                )
+                _offlinePackageState.value = OfflinePackageState.Success(packageInfo)
+
+            } catch (e: Exception) {
+                _offlinePackageState.value = OfflinePackageState.Error(e.message ?: "下载离线包失败")
+            }
+        }
+    }
+
+    /** Phase 47: 加载已下载的离线包列表 */
+    fun loadOfflinePackages() {
+        val manager = _offlinePackageManager ?: return
+        val packages = manager.getAllPackages()
+        _offlinePackageListState.value = OfflinePackageListState.Success(packages)
+    }
+
+    /** Phase 47: 删除离线包 */
+    fun deleteOfflinePackage(packageId: String) {
+        val manager = _offlinePackageManager ?: return
+        manager.deletePackage(packageId)
+        loadOfflinePackages()
+    }
+
+    /** Phase 47: 查看离线包内容 */
+    fun getOfflinePackageContents(packageId: String): OfflinePackageContents? {
+        val manager = _offlinePackageManager ?: return null
+        val pkg = manager.getPackageByPackageId(packageId) ?: return null
+        val filePath = pkg.localFilePath ?: return null
+        return manager.parsePackageContents(filePath)
+    }
+
+    /** Phase 47: 重置离线包状态 */
+    fun resetOfflinePackageState() {
+        _offlinePackageState.value = OfflinePackageState.Idle
+    }
 }
 
 /** 生成行程状态 */
@@ -381,4 +522,19 @@ sealed class PlanBState {
     object Loading : PlanBState()
     data class Success(val data: PlanBData) : PlanBState()
     data class Error(val message: String) : PlanBState()
+}
+
+/** Phase 47: 离线运动包操作状态 */
+sealed class OfflinePackageState {
+    object Idle : OfflinePackageState()
+    object Generating : OfflinePackageState()
+    data class Downloading(val progress: Float) : OfflinePackageState()
+    data class Success(val packageInfo: OfflinePackageInfo) : OfflinePackageState()
+    data class Error(val message: String) : OfflinePackageState()
+}
+
+/** Phase 47: 离线包列表状态 */
+sealed class OfflinePackageListState {
+    object Idle : OfflinePackageListState()
+    data class Success(val packages: List<LocalOfflinePackage>) : OfflinePackageListState()
 }

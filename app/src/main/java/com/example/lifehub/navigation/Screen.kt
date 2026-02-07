@@ -56,4 +56,12 @@ sealed class Screen(val route: String) {
 
     // Phase 42: 个性化菜品推荐
     object Recommendation : Screen("recommendation")
+
+    // Phase 47: 离线运动包管理
+    object OfflinePackage : Screen("offline_package?planId={planId}") {
+        fun createRoute(planId: Int? = null): String {
+            val pid = planId?.toString() ?: ""
+            return "offline_package?planId=$pid"
+        }
+    }
 }
