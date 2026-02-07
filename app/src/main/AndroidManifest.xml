@@ -18,6 +18,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     
+    <!-- Activity Recognition权限 - Phase 43: 自动识别运动状态 -->
+    <!-- Android 10 (API 29)+ 需要运行时权限 -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    
     <!-- 高德地图SDK所需权限 - Phase 23 -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

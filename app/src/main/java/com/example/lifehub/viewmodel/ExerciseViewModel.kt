@@ -3,6 +3,9 @@ package com.example.lifehub.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.lifehub.data.ActivityRecognitionResult
+import com.example.lifehub.data.ActivityRecognitionState
+import com.example.lifehub.data.ActivityRecognitionUtils
 import com.example.lifehub.data.CreateExerciseRecordRequest
 import com.example.lifehub.data.ExerciseTrackingData
 import com.example.lifehub.data.ExerciseTrackingState
@@ -10,6 +13,7 @@ import com.example.lifehub.data.ExerciseTrackingUtils
 import com.example.lifehub.data.SaveExerciseState
 import com.example.lifehub.data.TrackPoint
 import com.example.lifehub.network.RetrofitClient
+import com.example.lifehub.services.ActivityRecognitionService
 import com.example.lifehub.services.LocationTrackingService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,6 +30,7 @@ import kotlinx.coroutines.launch
  * - 实时计算距离、配速、时间
  * - 管理GPS位置更新
  * - 估算热量消耗
+ * - Phase 43: Activity Recognition自动识别运动状态
  */
 class ExerciseViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -45,6 +50,13 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     private val _saveState = MutableStateFlow<SaveExerciseState>(SaveExerciseState.Idle)
     val saveState: StateFlow<SaveExerciseState> = _saveState.asStateFlow()
 
+    // Phase 43: Activity Recognition 状态
+    private val _detectedActivity = MutableStateFlow<ActivityRecognitionResult?>(null)
+    val detectedActivity: StateFlow<ActivityRecognitionResult?> = _detectedActivity.asStateFlow()
+
+    private val _activityRecognitionState = MutableStateFlow<ActivityRecognitionState>(ActivityRecognitionState.Idle)
+    val activityRecognitionState: StateFlow<ActivityRecognitionState> = _activityRecognitionState.asStateFlow()
+
     // 内部状态
     private val trackPoints = mutableListOf<TrackPoint>()
     private var startTime = 0L
@@ -52,6 +64,8 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     private var pauseStartTime = 0L
     private var timerJob: Job? = null
     private var locationService: LocationTrackingService? = null
+    private var activityRecognitionService: ActivityRecognitionService? = null
+    private var activityCollectJob: Job? = null
     private var exerciseType: String = "walking"
     private var planId: Int? = null
 
@@ -311,9 +325,83 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
         _saveState.value = SaveExerciseState.Idle
     }
 
+    // ==================== Phase 43: Activity Recognition ====================
+
+    /**
+     * 启动活动识别 - Phase 43
+     *
+     * 开始监听用户的物理活动状态（静止/步行/跑步/骑行）。
+     * 识别结果通过 detectedActivity StateFlow 暴露给UI层。
+     * 若正在追踪运动，会自动更新运动类型。
+     */
+    fun startActivityRecognition() {
+        if (activityRecognitionService == null) {
+            activityRecognitionService = ActivityRecognitionService(getApplication())
+        }
+        activityRecognitionService?.startRecognition()
+
+        // 收集识别结果
+        activityCollectJob?.cancel()
+        activityCollectJob = viewModelScope.launch {
+            activityRecognitionService?.currentActivity?.collect { result ->
+                _detectedActivity.value = result
+                // 若正在追踪且检测到有效运动类型，自动更新exerciseType
+                if (_trackingState.value is ExerciseTrackingState.Tracking && result != null) {
+                    val newType = ActivityRecognitionUtils.mapToExerciseType(result.activityType)
+                    if (newType != "still" && newType != "unknown" && newType != "in_vehicle") {
+                        exerciseType = newType
+                    }
+                }
+            }
+        }
+
+        // 收集状态
+        viewModelScope.launch {
+            activityRecognitionService?.state?.collect { state ->
+                _activityRecognitionState.value = state
+            }
+        }
+    }
+
+    /**
+     * 停止活动识别 - Phase 43
+     */
+    fun stopActivityRecognition() {
+        activityCollectJob?.cancel()
+        activityCollectJob = null
+        activityRecognitionService?.stopRecognition()
+    }
+
+    /**
+     * 基于活动识别结果自动开始追踪 - Phase 43
+     *
+     * 当检测到用户从静止转为步行/跑步/骑行，且置信度足够时，
+     * 自动开始运动追踪。仅在Idle状态下触发。
+     */
+    fun autoStartTrackingIfNeeded() {
+        val currentResult = _detectedActivity.value ?: return
+        if (ActivityRecognitionUtils.shouldAutoStartTracking(currentResult) &&
+            _trackingState.value is ExerciseTrackingState.Idle
+        ) {
+            val type = ActivityRecognitionUtils.mapToExerciseType(currentResult.activityType)
+            startTracking(type = type)
+        }
+    }
+
+    /**
+     * 获取当前检测到的运动类型名称 - Phase 43
+     * 用于UI显示
+     */
+    fun getDetectedExerciseTypeLabel(): String {
+        val result = _detectedActivity.value ?: return "未检测"
+        return result.activityType.label
+    }
+
     override fun onCleared() {
         super.onCleared()
         locationService?.stopTracking()
+        activityRecognitionService?.stopRecognition()
+        activityCollectJob?.cancel()
         timerJob?.cancel()
     }
 }
