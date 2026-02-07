@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.lifehub"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -108,6 +108,9 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    
+    // Health Connect - Phase 44: 健康数据读写
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
     
     // Coroutines Test - Phase 34: 测试协程
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

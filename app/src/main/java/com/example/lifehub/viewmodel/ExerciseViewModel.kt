@@ -13,7 +13,11 @@ import com.example.lifehub.data.ExerciseTrackingUtils
 import com.example.lifehub.data.SaveExerciseState
 import com.example.lifehub.data.TrackPoint
 import com.example.lifehub.network.RetrofitClient
+import com.example.lifehub.data.HealthConnectAvailabilityStatus
+import com.example.lifehub.data.HealthConnectData
+import com.example.lifehub.data.HealthConnectSyncState
 import com.example.lifehub.services.ActivityRecognitionService
+import com.example.lifehub.services.HealthConnectService
 import com.example.lifehub.services.LocationTrackingService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -31,6 +35,7 @@ import kotlinx.coroutines.launch
  * - 管理GPS位置更新
  * - 估算热量消耗
  * - Phase 43: Activity Recognition自动识别运动状态
+ * - Phase 44: Health Connect健康数据读写与后台运动记录
  */
 class ExerciseViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -57,6 +62,19 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     private val _activityRecognitionState = MutableStateFlow<ActivityRecognitionState>(ActivityRecognitionState.Idle)
     val activityRecognitionState: StateFlow<ActivityRecognitionState> = _activityRecognitionState.asStateFlow()
 
+    // Phase 44: Health Connect 状态
+    private val _healthConnectAvailability = MutableStateFlow(HealthConnectAvailabilityStatus.NOT_SUPPORTED)
+    val healthConnectAvailability: StateFlow<HealthConnectAvailabilityStatus> = _healthConnectAvailability.asStateFlow()
+
+    private val _healthConnectSyncState = MutableStateFlow<HealthConnectSyncState>(HealthConnectSyncState.Idle)
+    val healthConnectSyncState: StateFlow<HealthConnectSyncState> = _healthConnectSyncState.asStateFlow()
+
+    private val _healthConnectData = MutableStateFlow(HealthConnectData())
+    val healthConnectData: StateFlow<HealthConnectData> = _healthConnectData.asStateFlow()
+
+    private val _healthConnectPermissionsGranted = MutableStateFlow(false)
+    val healthConnectPermissionsGranted: StateFlow<Boolean> = _healthConnectPermissionsGranted.asStateFlow()
+
     // 内部状态
     private val trackPoints = mutableListOf<TrackPoint>()
     private var startTime = 0L
@@ -65,6 +83,7 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     private var timerJob: Job? = null
     private var locationService: LocationTrackingService? = null
     private var activityRecognitionService: ActivityRecognitionService? = null
+    private var healthConnectService: HealthConnectService? = null
     private var activityCollectJob: Job? = null
     private var exerciseType: String = "walking"
     private var planId: Int? = null
@@ -395,6 +414,113 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     fun getDetectedExerciseTypeLabel(): String {
         val result = _detectedActivity.value ?: return "未检测"
         return result.activityType.label
+    }
+
+    // ==================== Phase 44: Health Connect ====================
+
+    /**
+     * 初始化Health Connect服务 - Phase 44
+     *
+     * 检查Health Connect可用性并创建服务实例。
+     * 应在ViewModel创建后尽早调用。
+     */
+    fun initHealthConnect() {
+        if (healthConnectService == null) {
+            healthConnectService = HealthConnectService(getApplication())
+        }
+        val status = healthConnectService!!.checkAvailability()
+        _healthConnectAvailability.value = status
+
+        // 收集服务状态
+        viewModelScope.launch {
+            healthConnectService?.syncState?.collect { state ->
+                _healthConnectSyncState.value = state
+            }
+        }
+        viewModelScope.launch {
+            healthConnectService?.healthData?.collect { data ->
+                _healthConnectData.value = data
+            }
+        }
+        viewModelScope.launch {
+            healthConnectService?.permissionsGranted?.collect { granted ->
+                _healthConnectPermissionsGranted.value = granted
+            }
+        }
+    }
+
+    /**
+     * 检查Health Connect权限是否已授予 - Phase 44
+     */
+    fun checkHealthConnectPermissions() {
+        viewModelScope.launch {
+            healthConnectService?.checkPermissions()
+        }
+    }
+
+    /**
+     * 从Health Connect读取今日健康数据 - Phase 44
+     *
+     * 读取步数、心率、卡路里、运动会话等数据。
+     * 结果通过 healthConnectData StateFlow 暴露给UI层。
+     */
+    fun syncHealthConnectData() {
+        viewModelScope.launch {
+            healthConnectService?.readTodayData()
+        }
+    }
+
+    /**
+     * 将运动追踪结果写入Health Connect - Phase 44
+     *
+     * 在运动追踪完成并保存到后端后调用，
+     * 将运动数据同步写入Health Connect，实现后台静默记录运动量。
+     *
+     * @param startTimeMillis 运动开始时间（毫秒）
+     * @param endTimeMillis 运动结束时间（毫秒）
+     * @param calories 消耗卡路里
+     * @param steps 步数（可选）
+     */
+    fun syncExerciseToHealthConnect(
+        startTimeMillis: Long,
+        endTimeMillis: Long,
+        calories: Double,
+        steps: Long? = null
+    ) {
+        if (_healthConnectAvailability.value != HealthConnectAvailabilityStatus.AVAILABLE) {
+            return
+        }
+        viewModelScope.launch {
+            val success = healthConnectService?.writeExerciseSession(
+                exerciseType = exerciseType,
+                startTimeMillis = startTimeMillis,
+                endTimeMillis = endTimeMillis,
+                title = "LifeHub运动记录",
+                totalCalories = calories,
+                totalSteps = steps
+            ) ?: false
+
+            if (success) {
+                // 写入成功后刷新今日数据
+                healthConnectService?.readTodayData()
+            }
+        }
+    }
+
+    /**
+     * 获取Health Connect所需权限集合 - Phase 44
+     * 供Activity层请求权限时使用
+     */
+    fun getHealthConnectPermissions(): Set<String> {
+        return HealthConnectService.REQUIRED_PERMISSIONS
+    }
+
+    /**
+     * 获取Health Connect服务实例 - Phase 44
+     * 供需要直接操作服务的场景使用
+     */
+    fun getHealthConnectService(): HealthConnectService? {
+        return healthConnectService
     }
 
     override fun onCleared() {
