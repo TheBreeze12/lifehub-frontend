@@ -236,6 +236,11 @@ fun MainNavigation() {
                 RecommendationPage(navController = navController)
             }
 
+            // Phase 48: 健康目标达成情况
+            composable(Screen.GoalProgress.route) {
+                GoalProgressPage(navController = navController)
+            }
+
             // Phase 47: 离线运动包管理
             composable(
                 route = Screen.OfflinePackage.route,

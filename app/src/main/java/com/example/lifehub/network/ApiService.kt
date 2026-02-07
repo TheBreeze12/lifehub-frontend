@@ -310,6 +310,20 @@ interface ApiService {
                 @Body request: CreateExerciseRecordRequest
         ): CreateExerciseRecordResponse
 
+        // ==================== 健康目标达成率服务 (Phase 48) ====================
+
+        /**
+         * 获取健康目标达成率 GET /api/stats/goal-progress
+         * @param userId 用户ID
+         * @param days 统计天数（1-90，默认7）
+         * @return 多维度达成率、综合得分、个性化建议、连续记录天数
+         */
+        @GET("/api/stats/goal-progress")
+        suspend fun getGoalProgress(
+                @Query("userId") userId: Int,
+                @Query("days") days: Int = 7
+        ): GoalProgressResponse
+
         // ==================== 离线运动包服务 (Phase 47) ====================
 
         /**

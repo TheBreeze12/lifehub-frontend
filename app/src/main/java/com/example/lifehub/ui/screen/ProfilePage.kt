@@ -437,6 +437,26 @@ private fun StatsCards(navController: NavController, tripCount: Int, dietRecordC
                 onClick = { navController.navigate(Screen.Stats.route) }
         )
     }
+
+    Spacer(modifier = Modifier.height(10.dp))
+
+    // Phase 48: 健康目标达成入口
+    Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        StatCard(
+                modifier = Modifier.weight(1f),
+                value = "🎯",
+                label = "健康目标",
+                gradientColors =
+                        listOf(Color(0xFF10B981).copy(alpha = 0.15f), Color(0xFF22C55E).copy(alpha = 0.1f)),
+                iconTint = Color(0xFF10B981),
+                onClick = { navController.navigate(Screen.GoalProgress.route) }
+        )
+        // 占位保持对齐
+        Spacer(modifier = Modifier.weight(2f))
+    }
 }
 
 @Composable

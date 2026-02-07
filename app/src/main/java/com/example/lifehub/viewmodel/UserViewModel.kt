@@ -37,6 +37,30 @@ class UserViewModel : ViewModel() {
     private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
     val registerState: StateFlow<RegisterState> = _registerState.asStateFlow()
 
+    // Phase 48: 健康目标达成率状态
+    private val _goalProgressState = MutableStateFlow<GoalProgressState>(GoalProgressState.Idle)
+    val goalProgressState: StateFlow<GoalProgressState> = _goalProgressState.asStateFlow()
+
+    /** Phase 48: 获取健康目标达成率 */
+    fun getGoalProgress(userId: Int, days: Int = 7) {
+        viewModelScope.launch {
+            _goalProgressState.value = GoalProgressState.Loading
+
+            try {
+                val response = apiService.getGoalProgress(userId, days)
+
+                if (response.code == 200 && response.data != null) {
+                    _goalProgressState.value = GoalProgressState.Success(response.data)
+                } else {
+                    _goalProgressState.value =
+                            GoalProgressState.Error(response.message ?: "获取健康目标达成率失败")
+                }
+            } catch (e: Exception) {
+                _goalProgressState.value = GoalProgressState.Error(e.message ?: "网络请求失败")
+            }
+        }
+    }
+
     /** 更新用户偏好设置 */
     fun updatePreferences(
             userId: Int,
@@ -294,4 +318,12 @@ sealed class RegisterState {
     object Loading : RegisterState()
     data class Success(val userId: Int) : RegisterState()
     data class Error(val message: String) : RegisterState()
+}
+
+/** Phase 48: 健康目标达成率状态 */
+sealed class GoalProgressState {
+    object Idle : GoalProgressState()
+    object Loading : GoalProgressState()
+    data class Success(val data: GoalProgressData) : GoalProgressState()
+    data class Error(val message: String) : GoalProgressState()
 }
