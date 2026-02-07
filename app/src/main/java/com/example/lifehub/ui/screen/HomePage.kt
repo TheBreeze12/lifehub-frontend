@@ -251,6 +251,18 @@ fun HomePage(
                                 onClick = { navController.navigate(Screen.MealComparison.route) }
                         )
 
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Phase 42: 个性化菜品推荐入口
+                        QuickActionCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                icon = Icons.Default.Recommend,
+                                title = "智能推荐",
+                                subtitle = "基于您的健康目标个性化推荐菜品",
+                                gradientColors = listOf(ForestGreenDark, ForestGreenLight),
+                                onClick = { navController.navigate(Screen.Recommendation.route) }
+                        )
+
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // 今日饮食卡片

@@ -232,6 +232,22 @@ interface ApiService {
                 @Part image: MultipartBody.Part
         ): AfterMealResponse
 
+        // ==================== 个性化菜品推荐服务 (Phase 42) ====================
+
+        /**
+         * 获取个性化菜品推荐 GET /api/food/recommend
+         * @param userId 用户ID
+         * @param mealType 餐次（breakfast/lunch/dinner/snack）
+         * @param limit 返回推荐数量
+         * @return 推荐菜品列表
+         */
+        @GET("/api/food/recommend")
+        suspend fun getFoodRecommendations(
+                @Query("user_id") userId: Int,
+                @Query("meal_type") mealType: String = "lunch",
+                @Query("limit") limit: Int = 5
+        ): RecommendationResponse
+
         // ==================== 数据统计服务 (Phase 17) ====================
 
         /**

@@ -53,4 +53,7 @@ sealed class Screen(val route: String) {
             return "exercise_summary?planId=$pid&exerciseType=$exerciseType&distance=$distance&duration=$duration&calories=$calories&pace=$pace"
         }
     }
+
+    // Phase 42: 个性化菜品推荐
+    object Recommendation : Screen("recommendation")
 }

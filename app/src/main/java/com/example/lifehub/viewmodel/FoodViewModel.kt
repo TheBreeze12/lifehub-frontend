@@ -17,6 +17,7 @@ import com.example.lifehub.data.DishItem
 import com.example.lifehub.data.FoodData
 import com.example.lifehub.data.FoodRequest
 import com.example.lifehub.data.MealComparisonRecord
+import com.example.lifehub.data.RecommendationResultData
 import com.example.lifehub.data.UpdateDietRecordRequest
 import com.example.lifehub.network.RetrofitClient
 import java.io.File
@@ -109,6 +110,14 @@ sealed class AfterMealUploadState {
     data class Error(val message: String) : AfterMealUploadState()
 }
 
+/** 个性化菜品推荐UI状态 */
+sealed class RecommendationState {
+    object Idle : RecommendationState()
+    object Loading : RecommendationState()
+    data class Success(val data: RecommendationResultData) : RecommendationState()
+    data class Error(val message: String) : RecommendationState()
+}
+
 /** 菜品查询ViewModel */
 class FoodViewModel : ViewModel() {
 
@@ -184,6 +193,10 @@ class FoodViewModel : ViewModel() {
 
     private val _currentComparisonRecord = MutableStateFlow<MealComparisonRecord?>(null)
     val currentComparisonRecord: StateFlow<MealComparisonRecord?> = _currentComparisonRecord.asStateFlow()
+
+    // Phase 42: 个性化菜品推荐
+    private val _recommendationState = MutableStateFlow<RecommendationState>(RecommendationState.Idle)
+    val recommendationState: StateFlow<RecommendationState> = _recommendationState.asStateFlow()
 
     /** 端侧OCR服务实例（懒初始化） */
     private var ocrService: OcrService? = null
@@ -747,6 +760,52 @@ class FoodViewModel : ViewModel() {
     /** 重置删除记录状态 */
     fun resetDeleteDietRecordState() {
         _deleteDietRecordState.value = DeleteDietRecordState.Idle
+    }
+
+    // ==================== Phase 42: 个性化菜品推荐 ====================
+
+    /**
+     * 获取个性化菜品推荐
+     * @param userId 用户ID
+     * @param mealType 餐次（breakfast/lunch/dinner/snack）
+     * @param limit 返回推荐数量
+     */
+    fun getFoodRecommendations(userId: Int, mealType: String = "lunch", limit: Int = 5) {
+        viewModelScope.launch {
+            _recommendationState.value = RecommendationState.Loading
+
+            try {
+                val response = RetrofitClient.apiService.getFoodRecommendations(
+                    userId = userId,
+                    mealType = mealType,
+                    limit = limit
+                )
+
+                if (response.code == 200 && response.data != null) {
+                    _recommendationState.value = RecommendationState.Success(response.data)
+                } else {
+                    _recommendationState.value = RecommendationState.Error(
+                        response.message ?: "获取推荐失败"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "获取菜品推荐失败", e)
+                _recommendationState.value = RecommendationState.Error(
+                    when {
+                        e.message?.contains("Unable to resolve host") == true ->
+                            "网络连接失败，请检查后端服务是否启动"
+                        e.message?.contains("timeout") == true -> "请求超时，请稍后重试"
+                        e.message?.contains("404") == true -> "用户不存在，请先登录"
+                        else -> "获取推荐失败：${e.message ?: "未知错误"}"
+                    }
+                )
+            }
+        }
+    }
+
+    /** 重置推荐状态 */
+    fun resetRecommendationState() {
+        _recommendationState.value = RecommendationState.Idle
     }
 
     // ==================== 餐前餐后对比功能 ====================

@@ -230,6 +230,11 @@ fun MainNavigation() {
                     pace = pace
                 )
             }
+
+            // Phase 42: 个性化菜品推荐
+            composable(Screen.Recommendation.route) {
+                RecommendationPage(navController = navController)
+            }
         }
     }
 }
