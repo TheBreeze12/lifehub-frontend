@@ -94,15 +94,18 @@ fun ExerciseTrackingPage(
     val mapLng = currentLocation?.longitude ?: 116.4074
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 地图层（全屏）
-        AMapComposeView(
-            modifier = Modifier.fillMaxSize(),
-            initialLatitude = mapLat,
-            initialLongitude = mapLng,
-            initialZoom = 17f,
-            showLocation = true,
-            polylines = polylines
-        )
+        // 只有权限授予后才显示地图，避免在权限未授予时初始化地图导致闪退
+        if (locationPermissions.allPermissionsGranted) {
+            // 地图层（全屏）
+            AMapComposeView(
+                modifier = Modifier.fillMaxSize(),
+                initialLatitude = mapLat,
+                initialLongitude = mapLng,
+                initialZoom = 17f,
+                showLocation = true,
+                polylines = polylines
+            )
+        }
 
         // 顶部返回和标题
         TrackingTopBar(

@@ -23,7 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import com.amap.api.maps.model.CameraPosition
@@ -81,6 +84,7 @@ fun AMapComposeView(
     polylines: List<PolylineData> = emptyList()
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var mapViewState by remember { mutableStateOf<AMapViewState>(AMapViewState.Loading) }
     
     // 使用remember创建MapView，确保同步初始化
@@ -94,8 +98,9 @@ fun AMapComposeView(
         }
     }
 
-    // 地图View的生命周期管理
-    DisposableEffect(mapView) {
+    // 地图View的生命周期管理（含onResume/onPause/onDestroy）
+    // vivo等厂商手机对生命周期管理更严格，必须完整处理
+    DisposableEffect(lifecycleOwner, mapView) {
         if (mapView == null) {
             mapViewState = AMapViewState.Error("地图初始化失败")
             return@DisposableEffect onDispose { }
@@ -126,8 +131,25 @@ fun AMapComposeView(
             mapViewState = AMapViewState.Error("地图配置失败: ${e.message}")
         }
 
-        onDispose {
+        // 监听生命周期事件，确保MapView的onResume/onPause/onDestroy被正确调用
+        val observer = LifecycleEventObserver { _, event ->
             try {
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                    Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                    Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                    else -> { /* 其他事件不处理 */ }
+                }
+            } catch (e: Exception) {
+                // 静默处理生命周期异常，避免闪退
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            try {
+                mapView.onPause()
                 mapView.onDestroy()
             } catch (e: Exception) {
                 // 静默处理地图销毁异常，避免闪退
