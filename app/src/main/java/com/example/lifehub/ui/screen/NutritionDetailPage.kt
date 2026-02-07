@@ -26,8 +26,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
+import com.example.lifehub.data.CookingMethodItem
 import com.example.lifehub.ui.components.AllergenHighlightSection
 import com.example.lifehub.ui.components.AllergenWarningDialog
+import com.example.lifehub.ui.components.CookingMethodComparisonSection
 import com.example.lifehub.ui.components.matchUserAllergens
 import com.example.lifehub.ui.theme.ForestGreen
 import com.example.lifehub.viewmodel.FoodViewModel
@@ -122,7 +124,8 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                 tags = tags,
                                 aiReason = dishItem.reason ?: "暂无推荐理由",
                                 allergens = detectedAllergens,
-                                allergenReasoning = allergenReasoning
+                                allergenReasoning = allergenReasoning,
+                                cookingMethodComparisons = dishItem.cookingMethodComparisons
                         )
                 } else {
                         // 如果找不到，使用默认数据
@@ -323,6 +326,14 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                         detectedAllergens = nutritionData.allergens,
                                         matchedAllergens = matchedAllergens,
                                         allergenReasoning = nutritionData.allergenReasoning
+                                )
+                        }
+
+                        // Phase 50: 烹饪方式热量差异对比
+                        if (!nutritionData.cookingMethodComparisons.isNullOrEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                CookingMethodComparisonSection(
+                                        cookingMethods = nutritionData.cookingMethodComparisons
                                 )
                         }
 
@@ -544,5 +555,6 @@ data class NutritionData(
         val tags: List<String>,
         val aiReason: String,
         val allergens: List<String> = emptyList(),
-        val allergenReasoning: String? = null
+        val allergenReasoning: String? = null,
+        val cookingMethodComparisons: List<CookingMethodItem>? = null
 )

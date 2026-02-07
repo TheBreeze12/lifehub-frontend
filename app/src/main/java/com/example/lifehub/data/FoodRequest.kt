@@ -22,5 +22,7 @@ data class DishItem(
         @SerializedName("fat") val fat: Double,
         @SerializedName("carbs") val carbs: Double,
         @SerializedName("isRecommended") val isRecommended: Boolean,
-        @SerializedName("reason") val reason: String?
+        @SerializedName("reason") val reason: String?,
+        // Phase 50: 烹饪方式热量差异对比
+        val cookingMethodComparisons: List<CookingMethodItem>? = null
 )

@@ -347,7 +347,8 @@ class FoodViewModel : ViewModel() {
                                 fat = response.data.fat,
                                 carbs = response.data.carbs,
                                 isRecommended = true,
-                                reason = response.data.recommendation
+                                reason = response.data.recommendation,
+                                cookingMethodComparisons = response.data.cookingMethodComparisons
                             )
                         } else null
                     } catch (e: Exception) {
