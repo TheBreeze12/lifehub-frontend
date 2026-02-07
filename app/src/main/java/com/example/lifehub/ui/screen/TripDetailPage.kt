@@ -30,6 +30,9 @@ import com.example.lifehub.ui.components.AMapComposeView
 import com.example.lifehub.ui.components.PlanBSection
 import com.example.lifehub.ui.components.RouteOverlay
 import com.example.lifehub.ui.components.routesToPolylines
+import com.example.lifehub.ui.components.POISection
+import com.example.lifehub.ui.components.generateExercisePOIs
+import com.example.lifehub.ui.components.poisToMarkers
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.PlanBState
 import com.example.lifehub.viewmodel.RoutesState
@@ -212,6 +215,16 @@ fun TripDetailPage(
                                                                         )
                                                                 }
                                                         )
+                                                }
+
+                                                // Phase 58: 运动POI展示
+                                                item {
+                                                        val poiLat = weatherData?.latitude ?: 39.9042
+                                                        val poiLng = weatherData?.longitude ?: 116.4074
+                                                        val exercisePOIs = remember(poiLat, poiLng) {
+                                                                generateExercisePOIs(poiLat, poiLng)
+                                                        }
+                                                        POISection(pois = exercisePOIs)
                                                 }
 
                                                 // Phase 27: 开始运动按钮
@@ -1017,13 +1030,22 @@ private fun RouteMapSection(
                                                         val startPoint = routesState.data.startPoint
                                                         val polylines = routesToPolylines(routes, selectedRouteIndex)
                                                         
+                                                        // Phase 58: 生成POI标记点并叠加到地图
+                                                        val exercisePOIs = remember(startPoint.lat, startPoint.lng) {
+                                                                generateExercisePOIs(startPoint.lat, startPoint.lng)
+                                                        }
+                                                        val poiMarkers = remember(exercisePOIs) {
+                                                                poisToMarkers(exercisePOIs)
+                                                        }
+
                                                         AMapComposeView(
                                                                 modifier = Modifier.fillMaxSize(),
                                                                 initialLatitude = startPoint.lat,
                                                                 initialLongitude = startPoint.lng,
                                                                 initialZoom = 15f,
                                                                 showLocation = true,
-                                                                polylines = polylines
+                                                                polylines = polylines,
+                                                                markers = poiMarkers
                                                         )
                                                 }
                                         }

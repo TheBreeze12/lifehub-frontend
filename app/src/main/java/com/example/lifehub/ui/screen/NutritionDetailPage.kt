@@ -30,6 +30,7 @@ import com.example.lifehub.data.CookingMethodItem
 import com.example.lifehub.ui.components.AllergenHighlightSection
 import com.example.lifehub.ui.components.AllergenWarningDialog
 import com.example.lifehub.ui.components.CookingMethodComparisonSection
+import com.example.lifehub.ui.components.NutrientCustomDisplaySection
 import com.example.lifehub.ui.components.matchUserAllergens
 import com.example.lifehub.ui.theme.ForestGreen
 import com.example.lifehub.viewmodel.FoodViewModel
@@ -336,6 +337,16 @@ fun NutritionDetailPage(dishName: String, navController: NavController) {
                                         cookingMethods = nutritionData.cookingMethodComparisons
                                 )
                         }
+
+                        // Phase 58: 营养素自定义展示
+                        Spacer(modifier = Modifier.height(16.dp))
+                        NutrientCustomDisplaySection(
+                                foodName = nutritionData.name,
+                                calories = nutritionData.calories,
+                                protein = nutritionData.protein,
+                                fat = nutritionData.fat,
+                                carbs = nutritionData.carbs
+                        )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
