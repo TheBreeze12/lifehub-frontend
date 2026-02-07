@@ -353,10 +353,10 @@ fun ProfilePage(
                         userId = userId.value,
                         viewModel = viewModel,
                         onForgetSuccess = {
-                            UserSession.logout()
-                            isLoggedIn.value = false
-                            userId.value = null
-                            nickname.value = "健康达人"
+                            // 数据已清除但账号保留，重新加载偏好（显示重置后的默认值）
+                            userId.value?.let { id ->
+                                viewModel.getUserPreferences(id)
+                            }
                         }
                 )
             }

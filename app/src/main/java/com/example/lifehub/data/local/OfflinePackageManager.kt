@@ -23,9 +23,53 @@ class OfflinePackageManager(private val storageDir: File) {
     // 内存中维护的包索引（packageId -> LocalOfflinePackage）
     private val packageIndex = mutableMapOf<String, LocalOfflinePackage>()
 
+    // 索引持久化文件
+    private val indexFile = File(storageDir, "package_index.json")
+
     init {
         if (!storageDir.exists()) {
             storageDir.mkdirs()
+        }
+        // 从磁盘加载已有的包索引
+        loadIndexFromDisk()
+    }
+
+    // ----------------------------------------------------------
+    // 持久化：磁盘读写
+    // ----------------------------------------------------------
+
+    /** 从磁盘加载包索引 */
+    private fun loadIndexFromDisk() {
+        try {
+            if (indexFile.exists()) {
+                val json = indexFile.readText(Charsets.UTF_8)
+                val listType = object : TypeToken<List<LocalOfflinePackage>>() {}.type
+                val packages: List<LocalOfflinePackage> = gson.fromJson(json, listType) ?: emptyList()
+                packageIndex.clear()
+                for (pkg in packages) {
+                    // 校验本地文件是否还存在，不存在则标记为NOT_DOWNLOADED
+                    val validatedPkg = if (pkg.status == OfflinePackageStatus.DOWNLOADED && pkg.localFilePath != null) {
+                        if (File(pkg.localFilePath).exists()) pkg
+                        else pkg.copy(status = OfflinePackageStatus.NOT_DOWNLOADED, localFilePath = null, downloadProgress = 0f)
+                    } else {
+                        pkg
+                    }
+                    packageIndex[validatedPkg.packageId] = validatedPkg
+                }
+            }
+        } catch (e: Exception) {
+            // 索引文件损坏时静默处理，从空索引开始
+            packageIndex.clear()
+        }
+    }
+
+    /** 将包索引持久化到磁盘 */
+    private fun saveIndexToDisk() {
+        try {
+            val json = gson.toJson(packageIndex.values.toList())
+            indexFile.writeText(json, Charsets.UTF_8)
+        } catch (e: Exception) {
+            // 写入失败静默处理
         }
     }
 
@@ -65,6 +109,7 @@ class OfflinePackageManager(private val storageDir: File) {
             planTitle = planTitle,
             planDestination = planDestination
         )
+        saveIndexToDisk()
     }
 
     /** 获取所有本地离线包 */
@@ -118,6 +163,10 @@ class OfflinePackageManager(private val storageDir: File) {
                 else -> null
             }
         )
+        // DOWNLOADING状态频繁更新，不每次都写磁盘；其他状态变更时持久化
+        if (status != OfflinePackageStatus.DOWNLOADING) {
+            saveIndexToDisk()
+        }
     }
 
     // ----------------------------------------------------------
@@ -140,6 +189,7 @@ class OfflinePackageManager(private val storageDir: File) {
         }
 
         packageIndex.remove(packageId)
+        saveIndexToDisk()
         return true
     }
 

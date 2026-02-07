@@ -138,6 +138,7 @@ class SpeechRecognitionService(private val context: Context) {
     /**
      * 开始语音识别
      * 根据可用引擎自动选择识别方式
+     * 当检测结果为NONE时，仍尝试Android内置识别器（部分国产ROM可用但不报告）
      */
     fun startListening() {
         if (isListening) {
@@ -159,11 +160,17 @@ class SpeechRecognitionService(private val context: Context) {
             SpeechEngineType.FUNASR_ONNX -> startFunASRListening()
             SpeechEngineType.ANDROID_BUILTIN -> startAndroidListening()
             SpeechEngineType.NONE -> {
-                _recognitionState.value = SpeechRecognitionState.Error(
-                    message = "无可用的语音识别引擎",
-                    code = 2
-                )
-                isListening = false
+                // 部分国产ROM虽然isRecognitionAvailable返回false但实际可用，
+                // 尝试强制使用Android内置识别器作为最后手段
+                try {
+                    startAndroidListening()
+                } catch (e: Exception) {
+                    _recognitionState.value = SpeechRecognitionState.Error(
+                        message = "无可用的语音识别引擎，请在系统设置中安装语音服务或下载离线语言包",
+                        code = 2
+                    )
+                    isListening = false
+                }
             }
         }
     }
@@ -179,7 +186,10 @@ class SpeechRecognitionService(private val context: Context) {
         when (_availableEngine.value) {
             SpeechEngineType.FUNASR_ONNX -> stopFunASRListening()
             SpeechEngineType.ANDROID_BUILTIN -> stopAndroidListening()
-            SpeechEngineType.NONE -> {}
+            SpeechEngineType.NONE -> {
+                // NONE时也可能已使用Android识别器作为fallback，尝试停止
+                stopAndroidListening()
+            }
         }
     }
 

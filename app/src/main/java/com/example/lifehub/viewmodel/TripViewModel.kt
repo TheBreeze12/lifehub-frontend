@@ -433,6 +433,8 @@ class TripViewModel : ViewModel() {
                     localFilePath = localPath
                 )
                 _offlinePackageState.value = OfflinePackageState.Success(packageInfo)
+                // 刷新离线包列表，让UI立即看到新下载的包
+                loadOfflinePackages()
 
             } catch (e: Exception) {
                 _offlinePackageState.value = OfflinePackageState.Error(e.message ?: "下载离线包失败")
