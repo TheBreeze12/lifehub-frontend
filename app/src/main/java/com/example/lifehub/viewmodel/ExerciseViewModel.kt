@@ -21,6 +21,8 @@ import com.example.lifehub.data.HealthConnectSyncState
 import com.example.lifehub.services.ActivityRecognitionService
 import com.example.lifehub.services.HealthConnectService
 import com.example.lifehub.services.LocationTrackingService
+import com.example.lifehub.utils.RouteDeviationDetector
+import com.example.lifehub.utils.RouteDeviationState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,6 +78,14 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
 
     private val _healthConnectPermissionsGranted = MutableStateFlow(false)
     val healthConnectPermissionsGranted: StateFlow<Boolean> = _healthConnectPermissionsGranted.asStateFlow()
+
+    // Phase 52: 路线偏离检测状态
+    private val _routeDeviationState = MutableStateFlow<RouteDeviationState>(RouteDeviationState.Normal)
+    val routeDeviationState: StateFlow<RouteDeviationState> = _routeDeviationState.asStateFlow()
+
+    // Phase 52: 规划路线点（由外部设置，用于偏离检测）
+    private var plannedRoutePoints: List<RouteDeviationDetector.LatLng> = emptyList()
+    private var deviationTracker: RouteDeviationDetector.DeviationTracker? = null
 
     // 内部状态
     private val trackPoints = mutableListOf<TrackPoint>()
@@ -208,6 +218,8 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
         _currentLocation.value = point
         trackPoints.add(point)
         updateTrackingData()
+        // Phase 52: 检测路线偏离
+        checkRouteDeviation(point)
     }
 
     /**
@@ -608,6 +620,117 @@ class ExerciseViewModel(application: Application) : AndroidViewModel(application
     fun getHealthConnectService(): HealthConnectService? {
         return healthConnectService
     }
+
+    // ==================== Phase 52: 路线偏离检测与偏航纠偏 ====================
+
+    /**
+     * 设置规划路线点 - Phase 52
+     *
+     * 在开始运动追踪前或获取到路线数据后调用，
+     * 设置规划路线点用于偏离检测。
+     *
+     * @param routePoints 规划路线的经纬度点列表
+     * @param thresholdMeters 偏离阈值（米），默认50m
+     * @param consecutiveThreshold 连续偏离次数阈值，默认3次
+     */
+    fun setPlannedRoute(
+        routePoints: List<RouteDeviationDetector.LatLng>,
+        thresholdMeters: Double = RouteDeviationDetector.DEFAULT_DEVIATION_THRESHOLD_METERS,
+        consecutiveThreshold: Int = RouteDeviationDetector.DEFAULT_CONSECUTIVE_COUNT
+    ) {
+        plannedRoutePoints = routePoints
+        deviationTracker = RouteDeviationDetector.DeviationTracker(
+            thresholdMeters = thresholdMeters,
+            consecutiveThreshold = consecutiveThreshold
+        )
+        _routeDeviationState.value = RouteDeviationState.Normal
+    }
+
+    /**
+     * 从路线坐标对列表设置规划路线 - Phase 52
+     * 便捷方法，接受 List<Pair<Double, Double>> (lat, lng)
+     */
+    fun setPlannedRouteFromPairs(
+        latLngPairs: List<Pair<Double, Double>>,
+        thresholdMeters: Double = RouteDeviationDetector.DEFAULT_DEVIATION_THRESHOLD_METERS
+    ) {
+        val routePoints = latLngPairs.map { (lat, lng) ->
+            RouteDeviationDetector.LatLng(lat, lng)
+        }
+        setPlannedRoute(routePoints, thresholdMeters)
+    }
+
+    /**
+     * 检测路线偏离 - Phase 52
+     *
+     * 在每次位置更新时调用，检测当前位置是否偏离规划路线。
+     * 使用DeviationTracker维护连续偏离计数，过滤GPS抖动。
+     *
+     * @param point 当前位置
+     */
+    private fun checkRouteDeviation(point: TrackPoint) {
+        val tracker = deviationTracker ?: return
+        if (plannedRoutePoints.size < 2) return
+        if (_trackingState.value !is ExerciseTrackingState.Tracking) return
+
+        val result = tracker.update(point, plannedRoutePoints)
+
+        _routeDeviationState.value = when {
+            result.isDeviated -> RouteDeviationState.Deviated(
+                deviationDistance = result.deviationDistance,
+                nearestPointOnRoute = result.nearestPointOnRoute
+            )
+            result.consecutiveDeviationCount > 0 -> RouteDeviationState.Warning(
+                deviationDistance = result.deviationDistance,
+                consecutiveCount = result.consecutiveDeviationCount
+            )
+            else -> RouteDeviationState.Normal
+        }
+    }
+
+    /**
+     * 清除偏航告警 - Phase 52
+     *
+     * 用户确认偏航提醒后调用，重置偏离状态。
+     */
+    fun dismissDeviationAlert() {
+        deviationTracker?.reset()
+        _routeDeviationState.value = RouteDeviationState.Normal
+    }
+
+    /**
+     * 触发重规划 - Phase 52
+     *
+     * 用户点击"一键重规划"后调用，
+     * 将状态设为Replanning，由UI层负责导航到重规划流程。
+     */
+    fun requestReplanning() {
+        _routeDeviationState.value = RouteDeviationState.Replanning
+        deviationTracker?.reset()
+    }
+
+    /**
+     * 重规划完成后更新路线 - Phase 52
+     *
+     * 重规划完成后调用，用新路线替换旧路线，重置偏离检测。
+     *
+     * @param newRoutePoints 新的规划路线点列表
+     */
+    fun updatePlannedRoute(newRoutePoints: List<RouteDeviationDetector.LatLng>) {
+        plannedRoutePoints = newRoutePoints
+        deviationTracker?.reset()
+        _routeDeviationState.value = RouteDeviationState.Normal
+    }
+
+    /**
+     * 获取当前规划路线点 - Phase 52
+     */
+    fun getPlannedRoutePoints(): List<RouteDeviationDetector.LatLng> = plannedRoutePoints
+
+    /**
+     * 是否有规划路线（用于UI判断是否显示偏离检测功能）- Phase 52
+     */
+    fun hasPlannedRoute(): Boolean = plannedRoutePoints.size >= 2
 
     override fun onCleared() {
         super.onCleared()

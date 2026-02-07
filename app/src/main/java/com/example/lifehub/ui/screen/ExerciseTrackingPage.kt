@@ -29,6 +29,8 @@ import com.example.lifehub.ui.components.AMapComposeView
 import com.example.lifehub.ui.components.LatLngPoint
 import com.example.lifehub.ui.components.PolylineData
 import com.example.lifehub.ui.theme.*
+import com.example.lifehub.utils.RouteDeviationDetector
+import com.example.lifehub.utils.RouteDeviationState
 import com.example.lifehub.viewmodel.ExerciseViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -57,6 +59,9 @@ fun ExerciseTrackingPage(
     val trackingState by exerciseViewModel.trackingState.collectAsState()
     val trackingData by exerciseViewModel.trackingData.collectAsState()
     val currentLocation by exerciseViewModel.currentLocation.collectAsState()
+
+    // Phase 52: 路线偏离检测状态
+    val routeDeviationState by exerciseViewModel.routeDeviationState.collectAsState()
 
     // 权限请求
     val locationPermissions = rememberMultiplePermissionsState(
@@ -125,6 +130,27 @@ fun ExerciseTrackingPage(
         if (!locationPermissions.allPermissionsGranted) {
             PermissionDeniedOverlay(
                 onRequestPermission = { locationPermissions.launchMultiplePermissionRequest() }
+            )
+        }
+
+        // Phase 52: 偏航提醒横幅
+        if (routeDeviationState is RouteDeviationState.Deviated) {
+            val deviatedState = routeDeviationState as RouteDeviationState.Deviated
+            RouteDeviationAlert(
+                deviationDistance = deviatedState.deviationDistance,
+                onDismiss = { exerciseViewModel.dismissDeviationAlert() },
+                onReplan = {
+                    exerciseViewModel.requestReplanning()
+                    // 暂停当前追踪，导航到重规划
+                    exerciseViewModel.pauseTracking()
+                    navController.navigate(
+                        Screen.TripPlanning.route
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 64.dp)
             )
         }
 
@@ -536,6 +562,112 @@ private fun PermissionDeniedOverlay(onRequestPermission: () -> Unit) {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("授予权限")
+                }
+            }
+        }
+    }
+}
+
+/** Phase 52: 偏航提醒横幅 */
+@Composable
+private fun RouteDeviationAlert(
+    deviationDistance: Double,
+    onDismiss: () -> Unit,
+    onReplan: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = true,
+        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+        modifier = modifier
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = ErrorRed.copy(alpha = 0.95f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "偏离路线",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "已偏离规划路线 ${RouteDeviationDetector.formatDeviationDistance(deviationDistance)}",
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "关闭",
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, Color.White.copy(alpha = 0.6f)
+                        )
+                    ) {
+                        Text("忽略", fontSize = 14.sp)
+                    }
+
+                    Button(
+                        onClick = onReplan,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = ErrorRed
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("一键重规划", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
