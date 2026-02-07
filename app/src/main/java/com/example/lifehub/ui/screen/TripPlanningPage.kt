@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.location.Location
 import android.os.Build
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -28,12 +30,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.lifehub.ai.SpeechRecognitionService
+import com.example.lifehub.data.SpeechRecognitionState
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.TripViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -46,6 +52,38 @@ fun TripPlanningPage(navController: NavController, tripViewModel: TripViewModel 
         var inputText by remember { mutableStateOf("") }
         val scrollState = rememberScrollState()
         val context = LocalContext.current
+
+        // Phase 45: 语音识别服务
+        val speechService = remember { SpeechRecognitionService(context) }
+        val speechState by speechService.recognitionState.collectAsState()
+
+        // Phase 45: 录音权限
+        val audioPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
+
+        // Phase 45: 监听语音识别结果，填入输入框
+        LaunchedEffect(speechState) {
+                when (val state = speechState) {
+                        is SpeechRecognitionState.Result -> {
+                                if (state.text.isNotBlank()) {
+                                        inputText = state.text
+                                }
+                                speechService.resetState()
+                        }
+                        is SpeechRecognitionState.PartialResult -> {
+                                if (state.text.isNotBlank()) {
+                                        inputText = state.text
+                                }
+                        }
+                        else -> {}
+                }
+        }
+
+        // Phase 45: 页面销毁时释放语音识别资源
+        DisposableEffect(Unit) {
+                onDispose {
+                        speechService.close()
+                }
+        }
 
         // 位置权限
         val locationPermissions =
@@ -143,6 +181,20 @@ fun TripPlanningPage(navController: NavController, tripViewModel: TripViewModel 
                                 isLoading =
                                         generateTripState is
                                                 com.example.lifehub.viewmodel.GenerateTripState.Loading,
+                                speechState = speechState,
+                                onVoiceClick = {
+                                        // Phase 45: 语音输入按钮点击
+                                        if (speechState is SpeechRecognitionState.Listening ||
+                                                speechState is SpeechRecognitionState.Processing) {
+                                                speechService.stopListening()
+                                        } else {
+                                                if (audioPermissionState.status.isGranted) {
+                                                        speechService.startListening()
+                                                } else {
+                                                        audioPermissionState.launchPermissionRequest()
+                                                }
+                                        }
+                                },
                                 onGenerateClick = {
                                         if (inputText.isNotBlank()) {
                                                 if (isLoggedIn && userId != null) {
@@ -351,8 +403,12 @@ private fun InputCard(
         inputText: String,
         onInputChange: (String) -> Unit,
         isLoading: Boolean,
+        speechState: SpeechRecognitionState = SpeechRecognitionState.Idle,
+        onVoiceClick: () -> Unit = {},
         onGenerateClick: () -> Unit
 ) {
+        val isRecording = speechState is SpeechRecognitionState.Listening ||
+                speechState is SpeechRecognitionState.Processing
         Card(
                 modifier = Modifier.fillMaxWidth().offset(y = (-50).dp).padding(horizontal = 4.dp),
                 shape = RoundedCornerShape(24.dp),
@@ -363,36 +419,29 @@ private fun InputCard(
                         modifier = Modifier.fillMaxWidth().padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                        // 麦克风图标（装饰用）- 带渐变效果
-                        Box(
-                                modifier =
-                                        Modifier.size(76.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                        Brush.linearGradient(
-                                                                colors =
-                                                                        listOf(
-                                                                                ForestGreen,
-                                                                                ForestGreenDark
-                                                                        )
-                                                        )
-                                                ),
-                                contentAlignment = Alignment.Center
-                        ) {
-                                Icon(
-                                        imageVector = Icons.Default.Mic,
-                                        contentDescription = "语音输入",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(34.dp)
-                                )
-                        }
+                        // Phase 45: 语音输入按钮 - 带录音动画
+                        VoiceInputButton(
+                                isRecording = isRecording,
+                                isProcessing = speechState is SpeechRecognitionState.Processing,
+                                onClick = onVoiceClick
+                        )
 
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                                text = "点击说出您的运动需求",
+                                text = when (speechState) {
+                                        is SpeechRecognitionState.Listening -> "正在聆听..."
+                                        is SpeechRecognitionState.Processing -> "正在识别..."
+                                        is SpeechRecognitionState.Error -> speechState.message
+                                        else -> "点击说出您的运动需求"
+                                },
                                 fontSize = 14.sp,
-                                color = TextSecondary,
+                                color = when (speechState) {
+                                        is SpeechRecognitionState.Listening -> VitalOrange
+                                        is SpeechRecognitionState.Processing -> ForestGreen
+                                        is SpeechRecognitionState.Error -> MaterialTheme.colorScheme.error
+                                        else -> TextSecondary
+                                },
                                 fontWeight = FontWeight.Medium
                         )
 
@@ -450,6 +499,82 @@ private fun InputCard(
                                         }
                                 }
                         )
+                }
+        }
+}
+
+/** Phase 45: 语音输入按钮（带录音脉冲动画） */
+@Composable
+private fun VoiceInputButton(
+        isRecording: Boolean,
+        isProcessing: Boolean,
+        onClick: () -> Unit
+) {
+        // 脉冲动画（录音中时显示）
+        val infiniteTransition = rememberInfiniteTransition(label = "voice_pulse")
+        val pulseScale by infiniteTransition.animateFloat(
+                initialValue = 1.0f,
+                targetValue = 1.2f,
+                animationSpec = infiniteRepeatable(
+                        animation = tween(600, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse_scale"
+        )
+        val pulseAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 0.0f,
+                animationSpec = infiniteRepeatable(
+                        animation = tween(600, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse_alpha"
+        )
+
+        Box(contentAlignment = Alignment.Center) {
+                // 脉冲光圈（仅录音中显示）
+                if (isRecording && !isProcessing) {
+                        Box(
+                                modifier = Modifier
+                                        .size(96.dp)
+                                        .scale(pulseScale)
+                                        .clip(CircleShape)
+                                        .background(VitalOrange.copy(alpha = pulseAlpha))
+                        )
+                }
+
+                // 主按钮
+                Box(
+                        modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(
+                                        Brush.linearGradient(
+                                                colors = if (isRecording) {
+                                                        listOf(VitalOrange, Color(0xFFE85D2C))
+                                                } else {
+                                                        listOf(ForestGreen, ForestGreenDark)
+                                                }
+                                        )
+                                )
+                                .clickable(onClick = onClick),
+                        contentAlignment = Alignment.Center
+                ) {
+                        if (isProcessing) {
+                                CircularProgressIndicator(
+                                        modifier = Modifier.size(34.dp),
+                                        color = Color.White,
+                                        strokeWidth = 3.dp
+                                )
+                        } else {
+                                Icon(
+                                        imageVector = if (isRecording) Icons.Default.MicOff
+                                                else Icons.Default.Mic,
+                                        contentDescription = if (isRecording) "停止录音" else "语音输入",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(34.dp)
+                                )
+                        }
                 }
         }
 }
