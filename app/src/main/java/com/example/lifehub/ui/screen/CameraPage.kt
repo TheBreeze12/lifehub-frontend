@@ -36,6 +36,8 @@ import coil.compose.AsyncImage
 import com.example.lifehub.data.DishItem
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
+import com.example.lifehub.ui.components.GlassCard
+import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.MenuRecognitionState
 import com.example.lifehub.viewmodel.RecognitionSource
@@ -61,6 +63,7 @@ fun CameraPage(navController: NavController) {
         // 状态管理
         var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
         var showPreview by remember { mutableStateOf(false) }
+        var selectedTab by remember { mutableStateOf(0) } // 0概览 1拍照 2历史
 
         // 识别状态
         val recognitionState by foodViewModel.recognitionState.collectAsState()
@@ -76,29 +79,21 @@ fun CameraPage(navController: NavController) {
                         null
                 }
 
-        // 请求权限并加载最新识别结果（仅在有用户时）
-        LaunchedEffect(Unit) {
-                if (!cameraPermissionState.status.isGranted) {
+        // 先加载最近一次识别结果，概览/历史页都可用
+        LaunchedEffect(userId) {
+                if (userId != null) {
+                        foodViewModel.getLatestRecognition(userId)
+                }
+        }
+        // 仅在进入“拍照识别”Tab时请求权限
+        LaunchedEffect(selectedTab) {
+                if (selectedTab == 1 && !cameraPermissionState.status.isGranted) {
                         cameraPermissionState.launchPermissionRequest()
-                } else {
-                        // 权限已授予，只有在有用户ID时才加载最新的识别结果
-                        if (userId != null) {
-                                foodViewModel.getLatestRecognition(userId)
-                        }
                 }
         }
 
-        // 权限被拒绝时的处理
-        if (!cameraPermissionState.status.isGranted) {
-                PermissionDeniedContent(
-                        onRequestPermission = { cameraPermissionState.launchPermissionRequest() },
-                        onBack = { navController.navigateUp() }
-                )
-                return
-        }
-
         // 显示照片预览
-        if (showPreview && capturedImageUri != null) {
+        if (selectedTab == 1 && showPreview && capturedImageUri != null) {
                 ImagePreviewScreen(
                         imageUri = capturedImageUri!!,
                         onConfirm = {
@@ -118,10 +113,53 @@ fun CameraPage(navController: NavController) {
         }
 
         // 主相机界面
-        Column(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A2E))) {
+        Column(modifier = Modifier.fillMaxSize().background(HomeBackgroundGradient)) {
+                GlassCard(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        elevation = 8.dp
+                ) {
+                        TabRow(selectedTabIndex = selectedTab, containerColor = Color.Transparent) {
+                                listOf("今日概览", "拍照识别", "历史记录").forEachIndexed { index, title ->
+                                        Tab(
+                                                selected = selectedTab == index,
+                                                onClick = { selectedTab = index },
+                                                text = { Text(title, fontSize = 13.sp) }
+                                        )
+                                }
+                        }
+                }
+
+                when (selectedTab) {
+                        0 -> FoodOverviewPanel(
+                                navController = navController,
+                                userId = userId,
+                                recognitionState = recognitionState,
+                                onGoCapture = { selectedTab = 1 }
+                        )
+                        2 -> FoodHistoryPanel(
+                                navController = navController,
+                                userId = userId,
+                                recognitionState = recognitionState,
+                                onGoCapture = { selectedTab = 1 }
+                        )
+                        else -> {
+                                if (!cameraPermissionState.status.isGranted) {
+                                        PermissionDeniedContent(
+                                                onRequestPermission = {
+                                                        cameraPermissionState.launchPermissionRequest()
+                                                },
+                                                onBack = { navController.navigateUp() }
+                                        )
+                                } else {
                 // 相机预览区域
+                GlassCard(
+                        modifier = Modifier.fillMaxWidth().height(400.dp).padding(16.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        elevation = 12.dp
+                ) {
                 Box(
-                        modifier = Modifier.fillMaxWidth().height(400.dp),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                 ) {
                         // 返回按钮
@@ -138,7 +176,7 @@ fun CameraPage(navController: NavController) {
                                 Icon(
                                         Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "返回",
-                                        tint = Color.White
+                                        tint = TextPrimary
                                 )
                         }
 
@@ -167,7 +205,7 @@ fun CameraPage(navController: NavController) {
                         // 提示文字
                         Text(
                                 text = "将菜单置于框内",
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = TextPrimary,
                                 fontSize = 14.sp,
                                 modifier = Modifier.align(Alignment.Center).offset(y = 75.dp)
                         )
@@ -181,7 +219,7 @@ fun CameraPage(navController: NavController) {
                                                 .border(4.dp, Color.White, CircleShape)
                                                 .padding(4.dp)
                                                 .clip(CircleShape)
-                                                .background(CoralOrange)
+                                                .background(FreshBlue)
                                                 .clickable {
                                                         cameraController.takePicture(context) { uri
                                                                 ->
@@ -199,12 +237,13 @@ fun CameraPage(navController: NavController) {
                                 )
                         }
                 }
+                }
 
                 // 识别结果区域
-                Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                        color = Color.White
+                GlassCard(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        elevation = 10.dp
                 ) {
                         Column(modifier = Modifier.padding(24.dp)) {
                                 Row(
@@ -216,7 +255,7 @@ fun CameraPage(navController: NavController) {
                                                 text = "识别结果",
                                                 fontSize = 20.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF1F2937)
+                                                color = TextPrimary
                                         )
                                         if (recognitionState is MenuRecognitionState.Success &&
                                                         userId != null
@@ -485,17 +524,113 @@ fun CameraPage(navController: NavController) {
                                 }
                         }
                 }
+                                }
+                        }
+                }
         }
 
         // 初始化相机
-        LaunchedEffect(Unit) {
-                if (cameraPermissionState.status.isGranted) {
+        LaunchedEffect(selectedTab, cameraPermissionState.status.isGranted) {
+                if (selectedTab == 1 && cameraPermissionState.status.isGranted) {
                         cameraController.startCamera(lifecycleOwner)
                 }
         }
 
         // 清理资源
         DisposableEffect(Unit) { onDispose { cameraController.release() } }
+}
+
+@Composable
+private fun FoodOverviewPanel(
+        navController: NavController,
+        userId: Int?,
+        recognitionState: MenuRecognitionState,
+        onGoCapture: () -> Unit
+) {
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), elevation = 10.dp) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("今日饮食中心", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("先查看今日摄入，再拍照补充记录，流程更清晰。", fontSize = 12.sp, color = TextSecondary)
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Button(onClick = { navController.navigate(Screen.TodayDietRecords.route) }, modifier = Modifier.weight(1f)) {
+                                                Text("今日记录")
+                                        }
+                                        OutlinedButton(onClick = { navController.navigate(Screen.AllDietRecords.route) }, modifier = Modifier.weight(1f)) {
+                                                Text("全部记录")
+                                        }
+                                }
+                        }
+                }
+                GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = 8.dp, onClick = onGoCapture) {
+                        Row(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                        ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = FreshBlue)
+                                        Text("去拍照识别", fontWeight = FontWeight.Medium, color = TextPrimary)
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondary)
+                        }
+                }
+                if (recognitionState is MenuRecognitionState.Success && userId != null) {
+                        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = 8.dp) {
+                                Text(
+                                        text = "最近一次识别：${recognitionState.dishes.size} 道菜",
+                                        modifier = Modifier.padding(14.dp),
+                                        color = TextSecondary,
+                                        fontSize = 12.sp
+                                )
+                        }
+                }
+        }
+}
+
+@Composable
+private fun FoodHistoryPanel(
+        navController: NavController,
+        userId: Int?,
+        recognitionState: MenuRecognitionState,
+        onGoCapture: () -> Unit
+) {
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), elevation = 10.dp) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("识别历史", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("可查看所有记录并回看识别结果。", fontSize = 12.sp, color = TextSecondary)
+                                Button(onClick = { navController.navigate(Screen.AllDietRecords.route) }) {
+                                        Text("查看全部饮食记录")
+                                }
+                        }
+                }
+                when {
+                        userId == null -> {
+                                GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = 8.dp) {
+                                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text("登录后可同步云端历史", color = TextSecondary, fontSize = 12.sp)
+                                                TextButton(onClick = { navController.navigate(Screen.Login.route) }) { Text("去登录") }
+                                        }
+                                }
+                        }
+                        recognitionState is MenuRecognitionState.Success && recognitionState.dishes.isNotEmpty() -> {
+                                GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = 8.dp) {
+                                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text("最近识别菜品", fontWeight = FontWeight.Medium, color = TextPrimary)
+                                                recognitionState.dishes.take(3).forEach { dish ->
+                                                        Text("• ${dish.name}", color = TextSecondary, fontSize = 12.sp)
+                                                }
+                                        }
+                                }
+                        }
+                        else -> {
+                                GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = 8.dp, onClick = onGoCapture) {
+                                        Text("暂无识别历史，去拍照开始记录", modifier = Modifier.padding(14.dp), color = TextSecondary, fontSize = 12.sp)
+                                }
+                        }
+                }
+        }
 }
 
 /** 相机预览组件 */
@@ -609,7 +744,7 @@ class CameraController(private val context: Context) {
 /** 照片预览界面 */
 @Composable
 fun ImagePreviewScreen(imageUri: Uri, onConfirm: () -> Unit, onRetake: () -> Unit) {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        Column(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.92f))) {
                 // 顶部操作栏
                 Row(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -653,14 +788,14 @@ fun ImagePreviewScreen(imageUri: Uri, onConfirm: () -> Unit, onRetake: () -> Uni
                                 modifier = Modifier.weight(1f),
                                 colors =
                                         ButtonDefaults.buttonColors(
-                                                containerColor = Color.White.copy(alpha = 0.2f)
+                                                containerColor = Color.White.copy(alpha = 0.18f)
                                         )
                         ) { Text("重拍", color = Color.White) }
 
                         Button(
                                 onClick = onConfirm,
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = CoralOrange)
+                                colors = ButtonDefaults.buttonColors(containerColor = FreshBlue)
                         ) { Text("确认", color = Color.White) }
                 }
         }
@@ -670,7 +805,7 @@ fun ImagePreviewScreen(imageUri: Uri, onConfirm: () -> Unit, onRetake: () -> Uni
 @Composable
 fun PermissionDeniedContent(onRequestPermission: () -> Unit, onBack: () -> Unit) {
         Column(
-                modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A2E)).padding(24.dp),
+                modifier = Modifier.fillMaxSize().background(HomeBackgroundGradient).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
         ) {
@@ -687,7 +822,7 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit, onBack: () -> Unit)
                         text = "需要相机权限",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = TextPrimary
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -695,19 +830,19 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit, onBack: () -> Unit)
                 Text(
                         text = "请允许应用访问相机以拍摄菜单照片",
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = TextSecondary
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                         onClick = onRequestPermission,
-                        colors = ButtonDefaults.buttonColors(containerColor = CoralOrange)
+                        colors = ButtonDefaults.buttonColors(containerColor = FreshBlue)
                 ) { Text("授予权限", color = Color.White) }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                TextButton(onClick = onBack) { Text("返回", color = Color.White.copy(alpha = 0.8f)) }
+                TextButton(onClick = onBack) { Text("返回", color = TextSecondary) }
         }
 }
 
@@ -728,30 +863,25 @@ fun BoxScope.CornerMarker(alignment: Alignment) {
                 modifier =
                         Modifier.align(alignment)
                                 .size(24.dp)
-                                .border(width = 4.dp, color = CoralOrange, shape = shape)
+                                .border(width = 4.dp, color = FreshBlue, shape = shape)
         )
 }
 
 /** 菜品卡片组件 */
 @Composable
 fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
-        // 根据菜品名称生成emoji（简化版，实际可以更智能）
-        val emoji =
+        val icon =
                 when {
-                        dish.name.contains("牛") || dish.name.contains("肉") -> "🥩"
-                        dish.name.contains("鸡") || dish.name.contains("蛋") -> "🍳"
-                        dish.name.contains("鱼") -> "🐟"
-                        dish.name.contains("菜") ||
-                                dish.name.contains("白菜") ||
-                                dish.name.contains("豆芽") -> "🥬"
-                        dish.name.contains("豆腐") -> "🧈"
-                        else -> "🍽️"
+                        dish.name.contains("鱼") -> Icons.Default.SetMeal
+                        dish.name.contains("菜") || dish.name.contains("豆") -> Icons.Default.Eco
+                        dish.name.contains("牛") || dish.name.contains("肉") -> Icons.Default.LocalFireDepartment
+                        else -> Icons.Default.Restaurant
                 }
-        Surface(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFFF9FAFB),
-                tonalElevation = 1.dp
+        GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                elevation = 6.dp,
+                onClick = onClick
         ) {
                 Row(
                         modifier = Modifier.padding(16.dp),
@@ -766,7 +896,14 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
                                                         else Color(0xFFFED7AA)
                                                 ),
                                 contentAlignment = Alignment.Center
-                        ) { Text(text = emoji, fontSize = 24.sp) }
+                        ) {
+                                Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (dish.isRecommended) Color(0xFF059669) else Color(0xFFD97706),
+                                        modifier = Modifier.size(24.dp)
+                                )
+                        }
 
                         Spacer(modifier = Modifier.width(16.dp))
 
@@ -790,8 +927,8 @@ fun DishItemCard(dish: DishItem, onClick: () -> Unit) {
                                                 Text(
                                                         text =
                                                                 if (dish.isRecommended)
-                                                                        "✓ ${dish.reason ?: "推荐"}"
-                                                                else "⚠️ ${dish.reason ?: "注意"}",
+                                                                        dish.reason ?: "推荐"
+                                                                else dish.reason ?: "注意",
                                                         fontSize = 10.sp,
                                                         color =
                                                                 if (dish.isRecommended)

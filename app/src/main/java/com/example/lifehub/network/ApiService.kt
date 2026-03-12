@@ -170,10 +170,9 @@ interface ApiService {
                 @Query("date") date: String? = null
         ): DietHistoryResponse
 
-        @GET("/api/user/data")
-        suspend fun getUserData(
-                @Query("nickname") nickname: String? = null,
-                @Query("password") password: String? = null
+        @POST("/api/user/login")
+        suspend fun login(
+            @Body request:UserLoginRequest
         ): UserPreferencesResponse
 
     /**

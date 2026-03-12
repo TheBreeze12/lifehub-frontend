@@ -17,7 +17,7 @@ object RetrofitClient {
     // 后端API基础URL
     // 10.0.2.2 是Android模拟器访问本地主机的特殊IP地址
     // 如果使用真机测试，需要改为电脑的局域网IP地址，如：http://192.168.1.100:8000
-    private const val BASE_URL = "http://192.168.1.19:8000"
+    private const val BASE_URL = "http://192.168.137.2:8000"
 //    private const val BASE_URL = "http://10.49.52.252:8000"
 
     /**

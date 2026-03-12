@@ -1,5 +1,6 @@
 package com.example.lifehub.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,10 +22,12 @@ import com.example.lifehub.data.UserSession
 import com.example.lifehub.ui.components.CalorieChart
 import com.example.lifehub.ui.components.CalorieSummaryCard
 import com.example.lifehub.ui.components.ExerciseFrequencyChart
+import com.example.lifehub.ui.components.GlassCard
 import com.example.lifehub.ui.components.NutrientRadarChart
 import com.example.lifehub.ui.components.NutrientSummaryCard
 import com.example.lifehub.ui.components.WeeklySummaryCard
 import com.example.lifehub.ui.theme.ForestGreen
+import com.example.lifehub.ui.theme.HomeBackgroundGradient
 import com.example.lifehub.viewmodel.DailyStatsUiState
 import com.example.lifehub.viewmodel.ExerciseFrequencyUiState
 import com.example.lifehub.viewmodel.NutrientStatsUiState
@@ -58,72 +61,67 @@ fun StatsPage(
         statsViewModel.refresh(userId)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("数据统计") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = ForestGreen,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // 视图模式切换
-            ViewModeSelector(
-                currentMode = viewMode,
-                onModeChange = { statsViewModel.setViewMode(it) }
-            )
-
-            // 日期导航
-            DateNavigator(
-                dateText = statsViewModel.getDateDisplayText(),
-                canGoNext = statsViewModel.canGoNext(),
-                onPrevious = { statsViewModel.goToPrevious() },
-                onNext = { statsViewModel.goToNext() },
-                onToday = { statsViewModel.goToToday() }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 内容区域
-            when (viewMode) {
-                StatsViewMode.DAILY -> DailyStatsContent(
-                    state = dailyStatsState,
-                    nutrientState = nutrientStatsState,  // Phase 18
-                    chartDataPoints = chartDataPoints,
-                    onRetry = { statsViewModel.getDailyCalorieStats(userId) },
-                    onRetryNutrient = { statsViewModel.getDailyNutrientStats(userId) }  // Phase 18
-                )
-                StatsViewMode.WEEKLY -> WeeklyStatsContent(
-                    state = weeklyStatsState,
-                    chartDataPoints = chartDataPoints,
-                    onRetry = { statsViewModel.getWeeklyCalorieStats(userId) }
+    Box(modifier = Modifier.fillMaxSize().background(HomeBackgroundGradient)) {
+        Scaffold(
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("数据统计") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             }
-
-            // Phase 51: 运动频率分析区域
-            ExerciseFrequencySection(
-                state = exerciseFrequencyState,
-                currentPeriod = frequencyPeriod,
-                onPeriodChange = { period ->
-                    statsViewModel.setFrequencyPeriod(period)
-                    statsViewModel.getExerciseFrequency(userId, period)
-                },
-                onRetry = { statsViewModel.getExerciseFrequency(userId) }
-            )
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                ViewModeSelector(
+                    currentMode = viewMode,
+                    onModeChange = { statsViewModel.setViewMode(it) }
+                )
+                DateNavigator(
+                    dateText = statsViewModel.getDateDisplayText(),
+                    canGoNext = statsViewModel.canGoNext(),
+                    onPrevious = { statsViewModel.goToPrevious() },
+                    onNext = { statsViewModel.goToNext() },
+                    onToday = { statsViewModel.goToToday() }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                when (viewMode) {
+                    StatsViewMode.DAILY -> DailyStatsContent(
+                        state = dailyStatsState,
+                        nutrientState = nutrientStatsState,
+                        chartDataPoints = chartDataPoints,
+                        onRetry = { statsViewModel.getDailyCalorieStats(userId) },
+                        onRetryNutrient = { statsViewModel.getDailyNutrientStats(userId) }
+                    )
+                    StatsViewMode.WEEKLY -> WeeklyStatsContent(
+                        state = weeklyStatsState,
+                        chartDataPoints = chartDataPoints,
+                        onRetry = { statsViewModel.getWeeklyCalorieStats(userId) }
+                    )
+                }
+                ExerciseFrequencySection(
+                    state = exerciseFrequencyState,
+                    currentPeriod = frequencyPeriod,
+                    onPeriodChange = { period ->
+                        statsViewModel.setFrequencyPeriod(period)
+                        statsViewModel.getExerciseFrequency(userId, period)
+                    },
+                    onRetry = { statsViewModel.getExerciseFrequency(userId) }
+                )
+            }
         }
     }
 }
@@ -238,11 +236,10 @@ private fun DailyStatsContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 餐次分布图表
-                Card(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                    elevation = 10.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -320,11 +317,10 @@ private fun WeeklyStatsContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 每日对比图表
-                Card(
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                    elevation = 10.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -409,11 +405,10 @@ private fun ErrorContent(
 private fun DetailInfoCard(
     items: List<Pair<String, String>>
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        elevation = 8.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -453,11 +448,10 @@ private fun NutrientStatsSection(
     nutrientState: NutrientStatsUiState,
     onRetry: () -> Unit
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        elevation = 10.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

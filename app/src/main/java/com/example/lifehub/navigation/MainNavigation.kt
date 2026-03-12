@@ -2,24 +2,27 @@ package com.example.lifehub.navigation
 
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.lifehub.ui.components.GlassCard
 import com.example.lifehub.ui.screen.*
 
 /** 底部导航栏项目 */
 sealed class BottomNavItem(val screen: Screen, val label: String, val icon: ImageVector) {
     object Home : BottomNavItem(Screen.Home, "首页", Icons.Filled.Home)
     object Food : BottomNavItem(Screen.Camera, "餐饮", Icons.Filled.Restaurant)
-    object Trip : BottomNavItem(Screen.TripPlanning, "运动", Icons.Filled.Place)
+    object Trip : BottomNavItem(Screen.TripPlanning, "运动", Icons.Filled.DirectionsRun)
     object Profile : BottomNavItem(Screen.Profile, "我的", Icons.Filled.Person)
 }
 
@@ -51,30 +54,44 @@ fun MainNavigation() {
                                 )
 
                 if (shouldShowBottomBar) {
-                    NavigationBar {
-                        bottomNavItems.forEach { item ->
-                            val selected =
+                    GlassCard(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        elevation = 16.dp
+                    ) {
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.02f),
+                            tonalElevation = 0.dp
+                        ) {
+                            bottomNavItems.forEach { item ->
+                                val selected =
                                     currentDestination?.hierarchy?.any {
                                         it.route == item.screen.route
                                     } == true
 
-                            NavigationBarItem(
+                                NavigationBarItem(
                                     icon = { Icon(item.icon, contentDescription = item.label) },
                                     label = { Text(item.label) },
                                     selected = selected,
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
                                     onClick = {
-                                        // 始终允许导航，即使已选中也重新导航以确保正确返回
+                                        // 顶层导航保留每个Tab自己的滚动和页面状态
                                         navController.navigate(item.screen.route) {
-                                            // 清除回退栈到首页
                                             popUpTo(Screen.Home.route) {
-                                                inclusive = item.screen.route == Screen.Home.route
-                                                saveState = false
+                                                saveState = true
                                             }
                                             launchSingleTop = true
-                                            restoreState = false
+                                            restoreState = true
                                         }
                                     }
-                            )
+                                )
+                            }
                         }
                     }
                 }

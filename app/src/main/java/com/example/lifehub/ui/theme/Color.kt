@@ -20,6 +20,14 @@ val BackgroundGradientStart = Color(0xFFF0FDF4) // 渐变起始：薄荷白
 val BackgroundGradientEnd = Color(0xFFECFCCB) // 渐变结束：嫩绿
 val CardBackground = Color(0xFFFFFFFF) // 卡片背景：纯白
 val CardBackgroundTint = Color(0xFFF7FEE7) // 卡片淡绿色调
+val FreshBlue = Color(0xFF60A5FA) // 清新蓝
+val FreshMint = Color(0xFF5EEAD4) // 清新薄荷
+val BackgroundGlassTop = Color(0xFFF2FAFF) // 玻璃背景顶部
+val BackgroundGlassBottom = Color(0xFFEFFAF2) // 玻璃背景底部
+val GlassSurfaceLight = Color(0xCCFFFFFF) // 浅色玻璃面
+val GlassSurfaceDark = Color(0x26FFFFFF) // 暗色玻璃面
+val GlassBorderLight = Color(0x99FFFFFF) // 浅色玻璃边框
+val GlassBorderDark = Color(0x40FFFFFF) // 暗色玻璃边框
 
 // 文字颜色 - 层次分明
 val TextPrimary = Color(0xFF1E293B) // 主文字：深灰蓝
@@ -58,4 +66,8 @@ val CoolGradient = Brush.linearGradient(
 
 val WarmGradient = Brush.linearGradient(
     colors = listOf(VitalOrange, CoralPink)
+)
+
+val HomeBackgroundGradient = Brush.verticalGradient(
+    colors = listOf(BackgroundGlassTop, BackgroundBeige, BackgroundGlassBottom)
 )

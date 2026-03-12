@@ -232,7 +232,7 @@ class UserViewModel : ViewModel() {
                 // 通过获取用户偏好来验证用户是否存在
                 //                val response = apiService.getUserPreferences(userId)
                 // 通过用户ID和密码来进行验证
-                val response = apiService.getUserData(nickname, password)
+                val response = apiService.login(UserLoginRequest(nickname, password))
                 if (response.code == 200 && response.data != null) {
                     _loginState.value =
                             LoginState.Success(

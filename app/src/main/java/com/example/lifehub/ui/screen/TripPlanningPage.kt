@@ -6,8 +6,8 @@ import android.location.Location
 import android.os.Build
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +34,7 @@ import com.example.lifehub.ai.SpeechRecognitionService
 import com.example.lifehub.data.SpeechRecognitionState
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
+import com.example.lifehub.ui.components.GlassCard
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.TripViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -46,7 +47,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 /** 运动规划页（餐后运动规划）- MVP版本 用户输入运动需求，AI生成运动计划 */
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TripPlanningPage(navController: NavController, tripViewModel: TripViewModel = viewModel()) {
         var inputText by remember { mutableStateOf("") }
@@ -160,137 +161,146 @@ fun TripPlanningPage(navController: NavController, tripViewModel: TripViewModel 
                 }
         }
 
-        Column(modifier = Modifier.fillMaxSize().background(BackgroundBeige)) {
-                // 顶部绿色区域（固定不滚动）
-                TripPlanningHeader(onBackClick = { navController.navigateUp() })
-
-                // 主要内容区域（可滚动）
-                Column(
-                        modifier =
-                                Modifier.fillMaxSize()
-                                        .verticalScroll(scrollState)
-                                        .padding(horizontal = 24.dp)
-                                        .padding(bottom = 24.dp)
-                ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // 输入卡片
-                        InputCard(
-                                inputText = inputText,
-                                onInputChange = { inputText = it },
-                                isLoading =
-                                        generateTripState is
-                                                com.example.lifehub.viewmodel.GenerateTripState.Loading,
-                                speechState = speechState,
-                                onVoiceClick = {
-                                        // Phase 45: 语音输入按钮点击
-                                        if (speechState is SpeechRecognitionState.Listening ||
-                                                speechState is SpeechRecognitionState.Processing) {
-                                                speechService.stopListening()
-                                        } else {
-                                                if (audioPermissionState.status.isGranted) {
-                                                        speechService.startListening()
-                                                } else {
-                                                        audioPermissionState.launchPermissionRequest()
-                                                }
-                                        }
-                                },
-                                onGenerateClick = {
-                                        if (inputText.isNotBlank()) {
-                                                if (isLoggedIn && userId != null) {
-                                                        // 如果还没有位置权限，先请求权限
-                                                        if (!locationPermissionsState
-                                                                        .allPermissionsGranted
-                                                        ) {
-                                                                locationPermissionsState
-                                                                        .launchMultiplePermissionRequest()
-                                                                // 权限请求后，位置会在LaunchedEffect中自动获取
-                                                                // 这里先不生成计划，等待用户再次点击
-                                                                return@InputCard
-                                                        }
-
-                                                        // 调用后端API生成运动计划，传递位置信息
-                                                        // 如果没有位置信息，传递null，后端会使用默认值
-                                                        tripViewModel.generateTrip(
-                                                                userId = userId,
-                                                                query = inputText,
-                                                                preferences = null, // 可以从用户设置中获取
-                                                                latitude = userLocation?.first,
-                                                                longitude = userLocation?.second
+        Box(modifier = Modifier.fillMaxSize().background(HomeBackgroundGradient)) {
+                Scaffold(
+                        containerColor = Color.Transparent,
+                        topBar = {
+                                TopAppBar(
+                                        title = { Text("运动规划") },
+                                        navigationIcon = {
+                                                IconButton(onClick = { navController.navigateUp() }) {
+                                                        Icon(
+                                                                imageVector =
+                                                                        Icons.AutoMirrored.Filled
+                                                                                .KeyboardArrowLeft,
+                                                                contentDescription = "返回"
                                                         )
-                                                } else {
-                                                        // 未登录，跳转到登录页面
-                                                        navController.navigate(Screen.Login.route)
                                                 }
-                                        }
-                                }
-                        )
-
-                        // 显示错误信息
-                        if (generateTripState is
-                                        com.example.lifehub.viewmodel.GenerateTripState.Error
-                        ) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                        text =
-                                                (generateTripState as
-                                                                com.example.lifehub.viewmodel.GenerateTripState.Error)
-                                                        .message,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                        },
+                                        colors =
+                                                TopAppBarDefaults.topAppBarColors(
+                                                        containerColor =
+                                                                MaterialTheme.colorScheme.surface
+                                                                        .copy(alpha = 0.6f),
+                                                        titleContentColor =
+                                                                MaterialTheme.colorScheme.onSurface,
+                                                        navigationIconContentColor =
+                                                                MaterialTheme.colorScheme.onSurface
+                                                )
                                 )
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // 热门推荐
-                        HotRecommendations(onRecommendationClick = { text -> inputText = text })
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 最近规划（仅在已登录时显示）
-                        if (isLoggedIn && userId != null) {
-                                RecentTrips(navController, recentTripsState, tripViewModel, userId)
-                        } else {
-                                // 未登录提示
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors =
-                                                CardDefaults.cardColors(
-                                                        containerColor = Color.White
-                                                )
+                ) { innerPadding ->
+                        Column(
+                                modifier =
+                                        Modifier.fillMaxSize()
+                                                .verticalScroll(scrollState)
+                                                .padding(innerPadding)
+                                                .padding(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                                TripPlanningHeader()
+                                Spacer(modifier = Modifier.height(14.dp))
+                                InputCard(
+                                        inputText = inputText,
+                                        onInputChange = { inputText = it },
+                                        isLoading =
+                                                generateTripState is
+                                                        com.example.lifehub.viewmodel
+                                                                .GenerateTripState.Loading,
+                                        speechState = speechState,
+                                        onVoiceClick = {
+                                                if (speechState is SpeechRecognitionState.Listening ||
+                                                        speechState is SpeechRecognitionState.Processing
+                                                ) {
+                                                        speechService.stopListening()
+                                                } else {
+                                                        if (audioPermissionState.status.isGranted) {
+                                                                speechService.startListening()
+                                                        } else {
+                                                                audioPermissionState
+                                                                        .launchPermissionRequest()
+                                                        }
+                                                }
+                                        },
+                                        onGenerateClick = {
+                                                if (inputText.isNotBlank()) {
+                                                        if (isLoggedIn && userId != null) {
+                                                                if (!locationPermissionsState
+                                                                                .allPermissionsGranted
+                                                                ) {
+                                                                        locationPermissionsState
+                                                                                .launchMultiplePermissionRequest()
+                                                                        return@InputCard
+                                                                }
+                                                                tripViewModel.generateTrip(
+                                                                        userId = userId,
+                                                                        query = inputText,
+                                                                        preferences = null,
+                                                                        latitude = userLocation?.first,
+                                                                        longitude = userLocation?.second
+                                                                )
+                                                        } else {
+                                                                navController.navigate(Screen.Login.route)
+                                                        }
+                                                }
+                                        }
+                                )
+                                if (generateTripState is
+                                                com.example.lifehub.viewmodel.GenerateTripState.Error
                                 ) {
-                                        Column(
-                                                modifier =
-                                                        Modifier.fillMaxWidth()
-                                                                .padding(
-                                                                        vertical = 48.dp,
-                                                                        horizontal = 24.dp
-                                                                ),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.Center
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        GlassCard(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(14.dp),
+                                                elevation = 8.dp
                                         ) {
-                                                Icon(
-                                                        Icons.Default.Lock,
-                                                        contentDescription = null,
-                                                        tint = Color(0xFF9CA3AF),
-                                                        modifier = Modifier.size(32.dp)
-                                                )
-                                                Spacer(modifier = Modifier.height(8.dp))
                                                 Text(
-                                                        text = "请先登录以查看最近运动计划",
+                                                        text =
+                                                                (generateTripState as
+                                                                                com.example.lifehub
+                                                                                        .viewmodel
+                                                                                        .GenerateTripState
+                                                                                        .Error)
+                                                                        .message,
+                                                        color = MaterialTheme.colorScheme.error,
                                                         fontSize = 12.sp,
-                                                        color = Color(0xFF6B7280)
+                                                        modifier = Modifier.padding(12.dp)
                                                 )
                                         }
                                 }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                HotRecommendations(onRecommendationClick = { text -> inputText = text })
+                                Spacer(modifier = Modifier.height(20.dp))
+                                if (isLoggedIn && userId != null) {
+                                        RecentTrips(navController, recentTripsState, tripViewModel, userId)
+                                } else {
+                                        GlassCard(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(16.dp),
+                                                elevation = 10.dp
+                                        ) {
+                                                Column(
+                                                        modifier =
+                                                                Modifier.fillMaxWidth().padding(22.dp),
+                                                        horizontalAlignment =
+                                                                Alignment.CenterHorizontally
+                                                ) {
+                                                        Icon(
+                                                                Icons.Default.Lock,
+                                                                contentDescription = null,
+                                                                tint = TextSecondary,
+                                                                modifier = Modifier.size(28.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        Text(
+                                                                text = "登录后可查看最近规划并快速复用",
+                                                                fontSize = 13.sp,
+                                                                color = TextSecondary
+                                                        )
+                                                }
+                                        }
+                                }
+                                Spacer(modifier = Modifier.height(24.dp))
                         }
-
-                        // 底部留白
-                        Spacer(modifier = Modifier.height(16.dp))
                 }
         }
 }
@@ -334,52 +344,45 @@ suspend fun getCurrentLocation(context: Context): Location? {
 }
 
 @Composable
-private fun TripPlanningHeader(onBackClick: () -> Unit = {}) {
-        Box(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .height(120.dp)
-                                .background(
-                                        Brush.linearGradient(
-                                                colors = listOf(ForestGreen, ForestGreenDark)
-                                        )
-                                )
+private fun TripPlanningHeader() {
+        GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                elevation = 14.dp
         ) {
-                // 返回按钮
-                IconButton(
-                        onClick = onBackClick,
+                Box(
                         modifier =
-                                Modifier.padding(16.dp)
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.2f))
-                                        .align(Alignment.TopStart)
+                                Modifier.fillMaxWidth()
+                                        .background(
+                                                Brush.linearGradient(
+                                                        colors =
+                                                                listOf(
+                                                                        FreshMint.copy(alpha = 0.65f),
+                                                                        FreshBlue.copy(alpha = 0.55f)
+                                                                )
+                                                )
+                                        )
+                                        .padding(20.dp)
                 ) {
-                        Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                contentDescription = "返回",
-                                tint = Color.White,
-                                modifier = Modifier.size(26.dp)
-                        )
-                }
-
-                // 标题和标签
-                Column(
-                        modifier = Modifier.align(Alignment.Center).padding(top = 12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                        Text(
-                                text = "餐后运动规划",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Chip(text = "✨ AI 生成")
-                                Chip(text = "💚 健康管理")
+                        Column {
+                                Text(
+                                        text = "智能运动规划",
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                        text = "输入目标后，AI 会结合饮食和出行场景生成更合理的餐后计划",
+                                        fontSize = 13.sp,
+                                        color = TextSecondary
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Chip(text = "AI 生成")
+                                        Chip(text = "位置感知")
+                                        Chip(text = "可执行计划")
+                                }
                         }
                 }
         }
@@ -387,11 +390,11 @@ private fun TripPlanningHeader(onBackClick: () -> Unit = {}) {
 
 @Composable
 private fun Chip(text: String) {
-        Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.2f)) {
+        Surface(shape = RoundedCornerShape(12.dp), color = Color.White.copy(alpha = 0.35f)) {
                 Text(
                         text = text,
                         fontSize = 11.sp,
-                        color = Color.White,
+                        color = TextPrimary,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
@@ -409,52 +412,58 @@ private fun InputCard(
 ) {
         val isRecording = speechState is SpeechRecognitionState.Listening ||
                 speechState is SpeechRecognitionState.Processing
-        Card(
-                modifier = Modifier.fillMaxWidth().offset(y = (-50).dp).padding(horizontal = 4.dp),
+        GlassCard(
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                elevation = 14.dp
         ) {
                 Column(
-                        modifier = Modifier.fillMaxWidth().padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                        // Phase 45: 语音输入按钮 - 带录音动画
-                        VoiceInputButton(
-                                isRecording = isRecording,
-                                isProcessing = speechState is SpeechRecognitionState.Processing,
-                                onClick = onVoiceClick
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Text(
-                                text = when (speechState) {
-                                        is SpeechRecognitionState.Listening -> "正在聆听..."
-                                        is SpeechRecognitionState.Processing -> "正在识别..."
-                                        is SpeechRecognitionState.Error -> speechState.message
-                                        else -> "点击说出您的运动需求"
-                                },
-                                fontSize = 14.sp,
-                                color = when (speechState) {
-                                        is SpeechRecognitionState.Listening -> VitalOrange
-                                        is SpeechRecognitionState.Processing -> ForestGreen
-                                        is SpeechRecognitionState.Error -> MaterialTheme.colorScheme.error
-                                        else -> TextSecondary
-                                },
-                                fontWeight = FontWeight.Medium
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 文本输入框
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                        ) {
+                                VoiceInputButton(
+                                        isRecording = isRecording,
+                                        isProcessing = speechState is SpeechRecognitionState.Processing,
+                                        onClick = onVoiceClick
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                                text = "描述你的运动目标",
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = TextPrimary
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                                text = when (speechState) {
+                                                        is SpeechRecognitionState.Listening -> "正在聆听，请继续说"
+                                                        is SpeechRecognitionState.Processing -> "语音识别中，请稍候"
+                                                        is SpeechRecognitionState.Error -> speechState.message
+                                                        else -> "可语音输入或手动输入，例如：餐后步行30分钟"
+                                                },
+                                                fontSize = 12.sp,
+                                                color = when (speechState) {
+                                                        is SpeechRecognitionState.Listening -> VitalOrange
+                                                        is SpeechRecognitionState.Processing -> ForestGreen
+                                                        is SpeechRecognitionState.Error -> MaterialTheme.colorScheme.error
+                                                        else -> TextSecondary
+                                                }
+                                        )
+                                }
+                        }
                         OutlinedTextField(
                                 value = inputText,
                                 onValueChange = onInputChange,
                                 modifier = Modifier.fillMaxWidth(),
+                                minLines = 3,
                                 placeholder = {
                                         Text(
-                                                text = "规划餐后运动，消耗300卡路里...",
+                                                text = "例如：晚饭后在家附近安排40分钟中等强度步行，目标消耗250卡",
                                                 fontSize = 14.sp,
                                                 color = TextSecondary
                                         )
@@ -463,42 +472,46 @@ private fun InputCard(
                                 colors =
                                         OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = ForestGreen,
-                                                unfocusedBorderColor = Color(0xFFE5E7EB)
+                                                unfocusedBorderColor = Color(0xFFCFD8E3)
                                         ),
-                                trailingIcon = {
-                                        if (isLoading) {
+                        )
+                        Button(
+                                onClick = onGenerateClick,
+                                enabled = inputText.isNotBlank() && !isLoading,
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                colors =
+                                        ButtonDefaults.buttonColors(
+                                                containerColor = FreshBlue,
+                                                disabledContainerColor = Color(0xFFBFC7D4)
+                                        ),
+                                shape = RoundedCornerShape(14.dp)
+                        ) {
+                                if (isLoading) {
+                                        Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                                 CircularProgressIndicator(
-                                                        modifier = Modifier.size(24.dp),
-                                                        color = ForestGreen,
+                                                        modifier = Modifier.size(18.dp),
+                                                        color = Color.White,
                                                         strokeWidth = 2.dp
                                                 )
-                                        } else {
-                                                Button(
-                                                        onClick = onGenerateClick,
-                                                        enabled = inputText.isNotBlank(),
-                                                        colors =
-                                                                ButtonDefaults.buttonColors(
-                                                                        containerColor =
-                                                                                VitalOrange,
-                                                                        disabledContainerColor =
-                                                                                Color.Gray
-                                                                ),
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        contentPadding =
-                                                                PaddingValues(
-                                                                        horizontal = 16.dp,
-                                                                        vertical = 8.dp
-                                                                )
-                                                ) {
-                                                        Text(
-                                                                text = "生成",
-                                                                fontSize = 12.sp,
-                                                                fontWeight = FontWeight.Bold
-                                                        )
-                                                }
+                                                Text(
+                                                        text = "正在生成计划...",
+                                                        fontSize = 14.sp,
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Medium
+                                                )
                                         }
+                                } else {
+                                        Text(
+                                                text = "生成运动计划",
+                                                fontSize = 15.sp,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.SemiBold
+                                        )
                                 }
-                        )
+                        }
                 }
         }
 }
@@ -581,49 +594,49 @@ private fun VoiceInputButton(
 
 @Composable
 private fun HotRecommendations(onRecommendationClick: (String) -> Unit) {
-        Column {
-                Text(
-                        text = "热门推荐",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 第一行标签
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RecommendationChip(
-                                text = "餐后散步",
-                                color = Color(0xFF10B981),
-                                onClick = { onRecommendationClick("餐后散步30分钟") }
+        GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                elevation = 10.dp
+        ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                                text = "热门推荐",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
                         )
-                        RecommendationChip(
-                                text = "慢跑30分钟",
-                                color = Color(0xFF3B82F6),
-                                onClick = { onRecommendationClick("慢跑30分钟") }
-                        )
-                        RecommendationChip(
-                                text = "公园健走",
-                                color = Color(0xFFEC4899),
-                                onClick = { onRecommendationClick("公园健走") }
-                        )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 第二行标签
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RecommendationChip(
-                                text = "骑行路线",
-                                color = Color(0xFFF59E0B),
-                                onClick = { onRecommendationClick("骑行路线") }
-                        )
-                        RecommendationChip(
-                                text = "户外运动",
-                                color = Color(0xFF8B5CF6),
-                                onClick = { onRecommendationClick("户外运动") }
-                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                                RecommendationChip(
+                                        text = "餐后散步",
+                                        color = Color(0xFF10B981),
+                                        onClick = { onRecommendationClick("餐后散步30分钟") }
+                                )
+                                RecommendationChip(
+                                        text = "慢跑30分钟",
+                                        color = Color(0xFF3B82F6),
+                                        onClick = { onRecommendationClick("慢跑30分钟") }
+                                )
+                                RecommendationChip(
+                                        text = "公园健走",
+                                        color = Color(0xFFEC4899),
+                                        onClick = { onRecommendationClick("公园健走") }
+                                )
+                                RecommendationChip(
+                                        text = "骑行路线",
+                                        color = Color(0xFFF59E0B),
+                                        onClick = { onRecommendationClick("骑行路线") }
+                                )
+                                RecommendationChip(
+                                        text = "户外运动",
+                                        color = Color(0xFF8B5CF6),
+                                        onClick = { onRecommendationClick("户外运动") }
+                                )
+                        }
                 }
         }
 }
@@ -737,11 +750,11 @@ fun RecentTripItem(
         itemCount: Int = 0,
         onClick: () -> Unit
 ) {
-        Card(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        GlassCard(
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = 10.dp,
+                onClick = onClick
         ) {
                 Row(
                         modifier = Modifier.fillMaxWidth().padding(14.dp),

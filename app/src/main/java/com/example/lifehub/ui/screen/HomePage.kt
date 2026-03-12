@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
+import com.example.lifehub.ui.components.GlassCard
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.FoodViewModel
 import com.example.lifehub.viewmodel.TripViewModel
@@ -133,13 +134,13 @@ fun HomePage(
         val greeting = remember {
                 val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
                 when {
-                        hour < 6 -> "夜深了 🌙"
-                        hour < 9 -> "早上好 ☀️"
-                        hour < 12 -> "上午好 🌤️"
-                        hour < 14 -> "中午好 🌞"
-                        hour < 18 -> "下午好 🌅"
-                        hour < 22 -> "晚上好 🌆"
-                        else -> "夜深了 🌙"
+                        hour < 6 -> "夜深了"
+                        hour < 9 -> "早上好"
+                        hour < 12 -> "上午好"
+                        hour < 14 -> "中午好"
+                        hour < 18 -> "下午好"
+                        hour < 22 -> "晚上好"
+                        else -> "夜深了"
                 }
         }
 
@@ -149,19 +150,7 @@ fun HomePage(
                         modifier =
                                 Modifier.fillMaxSize()
                                         .background(
-                                                brush =
-                                                        Brush.verticalGradient(
-                                                                colors =
-                                                                        listOf(
-                                                                                BackgroundGradientStart,
-                                                                                BackgroundBeige,
-                                                                                BackgroundGradientEnd
-                                                                                        .copy(
-                                                                                                alpha =
-                                                                                                        0.3f
-                                                                                        )
-                                                                        )
-                                                        )
+                                                brush = HomeBackgroundGradient
                                         )
                 )
 
@@ -194,11 +183,10 @@ fun HomePage(
                                 }
 
                                 // 通知按钮
-                                Surface(
+                                GlassCard(
                                         modifier = Modifier.size(44.dp),
                                         shape = CircleShape,
-                                        color = ForestGreenLight.copy(alpha = 0.3f),
-                                        shadowElevation = 2.dp
+                                        elevation = 8.dp
                                 ) {
                                         Box(contentAlignment = Alignment.Center) {
                                                 Icon(
@@ -213,7 +201,7 @@ fun HomePage(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // 快速操作卡片
+                        // 主任务与次任务
                         Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -239,45 +227,39 @@ fun HomePage(
                                 )
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // 餐前餐后对比入口卡片 (Phase 13)
-                        QuickActionCard(
+                        Spacer(modifier = Modifier.height(12.dp))
+                        GlassCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                icon = Icons.Default.CompareArrows,
-                                title = "餐前餐后对比",
-                                subtitle = "精准计算实际摄入量",
-                                gradientColors = listOf(LavenderPurple, SkyBlueLight),
-                                onClick = { navController.navigate(Screen.MealComparison.route) }
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Phase 42: 个性化菜品推荐入口
-                        QuickActionCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                icon = Icons.Default.Recommend,
-                                title = "智能推荐",
-                                subtitle = "基于您的健康目标个性化推荐菜品",
-                                gradientColors = listOf(ForestGreenDark, ForestGreenLight),
-                                onClick = { navController.navigate(Screen.Recommendation.route) }
-                        )
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = 8.dp
+                        ) {
+                                Row(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                        Text(
+                                                text = "更多工具",
+                                                color = TextSecondary,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium
+                                        )
+                                        TextButton(onClick = { navController.navigate(Screen.MealComparison.route) }) {
+                                                Text("餐前餐后对比", fontSize = 12.sp)
+                                        }
+                                        TextButton(onClick = { navController.navigate(Screen.Recommendation.route) }) {
+                                                Text("智能推荐", fontSize = 12.sp)
+                                        }
+                                }
+                        }
 
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // 今日饮食卡片
-                        Card(
-                                modifier =
-                                        Modifier.fillMaxWidth()
-                                                .shadow(
-                                                        elevation = 8.dp,
-                                                        shape = RoundedCornerShape(20.dp),
-                                                        ambientColor =
-                                                                ForestGreen.copy(alpha = 0.1f),
-                                                        spotColor = ForestGreen.copy(alpha = 0.1f)
-                                                ),
+                        GlassCard(
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                                elevation = 12.dp
                         ) {
                                 Column(modifier = Modifier.padding(18.dp)) {
                                         Row(
@@ -368,22 +350,11 @@ fun HomePage(
                         // 近期运动计划卡片
                         if (!isLoggedIn) {
                                 // 未登录状态：显示提示卡片
-                                Card(
+                                GlassCard(
                                         modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .shadow(
-                                                                elevation = 6.dp,
-                                                                shape = RoundedCornerShape(20.dp),
-                                                                ambientColor =
-                                                                        LavenderPurple.copy(
-                                                                                alpha = 0.1f
-                                                                        )
-                                                        ),
+                                                Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(20.dp),
-                                        colors =
-                                                CardDefaults.cardColors(
-                                                        containerColor = Color.White
-                                                )
+                                        elevation = 12.dp
                                 ) {
                                         Column(
                                                 modifier =
@@ -551,18 +522,11 @@ fun QuickActionCard(
         gradientColors: List<Color>,
         onClick: () -> Unit
 ) {
-        Card(
-                modifier =
-                        modifier.shadow(
-                                        elevation = 10.dp,
-                                        shape = RoundedCornerShape(20.dp),
-                                        ambientColor = gradientColors.first().copy(alpha = 0.2f),
-                                        spotColor = gradientColors.first().copy(alpha = 0.3f)
-                                )
-                                .clickable(onClick = onClick),
+        GlassCard(
+                modifier = modifier,
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                elevation = 10.dp,
+                onClick = onClick
         ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                         Box(
@@ -775,17 +739,11 @@ fun HomeTripCardSmall(trip: com.example.lifehub.data.TripSummary, onClick: () ->
 /** 空运动计划卡片 */
 @Composable
 fun EmptyTripCard(onClick: () -> Unit) {
-        Card(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .shadow(
-                                        elevation = 6.dp,
-                                        shape = RoundedCornerShape(20.dp),
-                                        ambientColor = ForestGreen.copy(alpha = 0.1f)
-                                )
-                                .clickable(onClick = onClick),
+        GlassCard(
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                elevation = 10.dp,
+                onClick = onClick
         ) {
                 Column(
                         modifier =

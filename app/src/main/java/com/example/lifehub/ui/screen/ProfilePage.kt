@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import com.example.lifehub.data.UserSession
 import com.example.lifehub.navigation.Screen
 import com.example.lifehub.ui.components.AllergenSelectorDialog
+import com.example.lifehub.ui.components.GlassCard
 import com.example.lifehub.ui.components.getAllergenDisplayText
 import com.example.lifehub.ui.theme.*
 import com.example.lifehub.viewmodel.FoodViewModel
@@ -76,7 +77,7 @@ fun ProfilePage(
         }
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize().background(BackgroundBeige)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().background(HomeBackgroundGradient)) {
         item {
             // 用户信息区域
             ProfileHeader(
@@ -301,10 +302,10 @@ fun ProfilePage(
                             modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Card(
+                    GlassCard(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            elevation = 10.dp
                     ) {
                         Row(
                                 modifier = Modifier
@@ -399,23 +400,13 @@ fun ProfilePage(
 
 @Composable
 private fun ProfileHeader(isLoggedIn: Boolean, nickname: String, onClickAvatar: () -> Unit) {
-    Box(
-            modifier =
-                    Modifier.fillMaxWidth()
-                            .background(
-                                    brush =
-                                            Brush.verticalGradient(
-                                                    colors =
-                                                            listOf(
-                                                                    BackgroundGradientStart,
-                                                                    BackgroundBeige
-                                                            )
-                                            )
-                            )
-                            .padding(24.dp)
-                            .padding(top = 32.dp)
+    GlassCard(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+            shape = RoundedCornerShape(24.dp),
+            elevation = 12.dp
     ) {
         Row(
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(18.dp)
         ) {
@@ -502,7 +493,7 @@ private fun StatsCards(navController: NavController, tripCount: Int, dietRecordC
         // Phase 17: 热量收支统计入口
         StatCard(
                 modifier = Modifier.weight(1f),
-                value = "📊",
+                value = "统计",
                 label = "热量统计",
                 gradientColors =
                         listOf(SkyBlueLight.copy(alpha = 0.2f), SkyBlue.copy(alpha = 0.1f)),
@@ -520,7 +511,7 @@ private fun StatsCards(navController: NavController, tripCount: Int, dietRecordC
     ) {
         StatCard(
                 modifier = Modifier.weight(1f),
-                value = "🎯",
+                value = "目标",
                 label = "健康目标",
                 gradientColors =
                         listOf(Color(0xFF10B981).copy(alpha = 0.15f), Color(0xFF22C55E).copy(alpha = 0.1f)),
@@ -530,7 +521,7 @@ private fun StatsCards(navController: NavController, tripCount: Int, dietRecordC
         // Phase 49: 运动历史记录入口
         StatCard(
                 modifier = Modifier.weight(1f),
-                value = "🏃",
+                value = "历史",
                 label = "运动历史",
                 gradientColors =
                         listOf(Color(0xFF6366F1).copy(alpha = 0.15f), Color(0xFF818CF8).copy(alpha = 0.1f)),
@@ -551,18 +542,11 @@ private fun StatCard(
         iconTint: Color = ForestGreen,
         onClick: (() -> Unit)? = null
 ) {
-    Card(
-            modifier =
-                    modifier.then(
-                            if (onClick != null) {
-                                Modifier.clickable(onClick = onClick)
-                            } else {
-                                Modifier
-                            }
-                    ),
+    GlassCard(
+            modifier = modifier,
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            elevation = 8.dp,
+            onClick = onClick
     ) {
         Box(
                 modifier =
@@ -616,11 +600,10 @@ private fun ForgetDataSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Card(
+        GlassCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = 10.dp
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
@@ -671,12 +654,10 @@ private fun ForgetDataSection(
                     }
                     is ForgetDataState.Success -> {
                         val state = forgetDataState as ForgetDataState.Success
-                        Card(
+                        GlassCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFF0FFF4)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = 6.dp
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
@@ -846,11 +827,10 @@ private fun DietPreferenceSection(
         selectedAllergens = allergens
     }
 
-    Card(
+    GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackground),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = 10.dp
     ) {
         Column {
             SettingItem(
@@ -917,11 +897,10 @@ private fun TravelPreferenceSection(
         dailyBudgetText = (dailyBudget ?: 500).toString()
     }
 
-    Card(
+    GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackground),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = 10.dp
     ) {
         Column {
             SettingItem(
@@ -1165,11 +1144,10 @@ private fun BodyParamsSection(
         currentGender = gender
     }
 
-    Card(
+    GlassCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackground),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = 10.dp
     ) {
         Column {
             SettingItem(

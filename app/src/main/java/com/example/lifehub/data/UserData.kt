@@ -160,6 +160,10 @@ data class UserRegistrationRequest(val nickname: String, val password: String)
 // UserRegistrationResponse.kt
 data class UserRegistrationResponse(val code: Int, val message: String, val userId: Int?)
 
+//UserLoginRequest.kt
+data class UserLoginRequest(val nickname: String, val password: String)
+
+
 /** Phase 55: 一键遗忘响应 */
 data class DataForgetResponse(
         @SerializedName("code") val code: Int,
